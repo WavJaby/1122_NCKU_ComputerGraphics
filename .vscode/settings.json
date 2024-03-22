@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "glut.h": "c",
+        "freeglut_std.h": "c",
+        "cmath": "c",
+        "main.h": "c",
+        "stl_reader.h": "c",
+        "gl_vector.h": "c",
+        "gl.h": "c",
+        "gl_first_person_control.h": "c",
+        "gl_user_input.h": "c",
+        "compare": "cpp"
+    }
+}
