@@ -55,7 +55,7 @@ STriangle* loadStlASCII(const char* pPathname, int* nTriangles) {
         STriangle* tri = triList + listSize;
         if (fscanf(file, "%s", str) != 1) {
             fprintf(stderr, "Invalid STL file\n");
-            goto ERROR;
+            goto ERROR_HANDLE;
         }
 
         if (strncmp(str, endsolid, endsolidLen) == 0)
@@ -63,47 +63,47 @@ STriangle* loadStlASCII(const char* pPathname, int* nTriangles) {
 
         if (strncmp(str, facet, facetLen) != 0) {
             fprintf(stderr, "Invalid STL file at facet\n");
-            goto ERROR;
+            goto ERROR_HANDLE;
         }
 
         // Read normal
         if (fscanf(file, "%s", str) != 1 || strncmp(str, normal, normalLen) != 0) {
             fprintf(stderr, "Invalid STL file at normal\n");
-            goto ERROR;
+            goto ERROR_HANDLE;
         }
         if (fscanf(file, "%f %f %f", &tri->normal[0], &tri->normal[1], &tri->normal[2]) != 3) {
             fprintf(stderr, "Failed to read normal vector\n");
-            goto ERROR;
+            goto ERROR_HANDLE;
         }
 
         // Read outer
         if (fscanf(file, "%s", str) != 1 || strncmp(str, outer, outerLen) != 0) {
             fprintf(stderr, "Invalid STL file at outer\n");
-            goto ERROR;
+            goto ERROR_HANDLE;
         }
         if (fscanf(file, "%s", str) != 1 || strncmp(str, loop, loopLen) != 0) {
             fprintf(stderr, "Invalid STL file at outer type: '%s'\n", str);
-            goto ERROR;
+            goto ERROR_HANDLE;
         }
         for (int i = 0; i < 3; i++) {
             if (fscanf(file, "%s", str) != 1 || strncmp(str, vertex, vertexLen) != 0) {
                 fprintf(stderr, "Invalid STL file at vertex\n");
-                goto ERROR;
+                goto ERROR_HANDLE;
             }
 
             float* v = (i == 0) ? tri->a : ((i == 1) ? tri->b : tri->c);
             if (fscanf(file, "%f %f %f", &v[0], &v[1], &v[2]) != 3) {
                 fprintf(stderr, "Failed to read vertex\n");
-                goto ERROR;
+                goto ERROR_HANDLE;
             }
         }
         if (fscanf(file, "%s", str) != 1 || strncmp(str, endloop, endloopLen) != 0) {
             fprintf(stderr, "Invalid STL file at outer type close\n");
-            goto ERROR;
+            goto ERROR_HANDLE;
         }
         if (fscanf(file, "%s", str) != 1 || strncmp(str, endfacet, endfacetLen) != 0) {
             fprintf(stderr, "Invalid STL file at facet close\n");
-            goto ERROR;
+            goto ERROR_HANDLE;
         }
 
         // re-compute normal
@@ -130,7 +130,7 @@ STriangle* loadStlASCII(const char* pPathname, int* nTriangles) {
     fclose(file);
     *nTriangles = listSize;
     return triList;
-ERROR:
+ERROR_HANDLE:
     *nTriangles = listSize;
     free(triList);
     fclose(file);

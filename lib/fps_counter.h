@@ -12,7 +12,11 @@ struct timespec start = {0};
 
 uint64_t getTimePass() {
     struct timespec end;
+#ifdef _WIN32
+    clock_gettime(CLOCK_MONOTONIC, &end);
+#else
     clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+#endif
     uint64_t timePass = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_nsec - start.tv_nsec) / 1000;
     start = end;
 

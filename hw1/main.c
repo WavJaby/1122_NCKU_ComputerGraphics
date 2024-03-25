@@ -71,7 +71,6 @@ void display() {
 
     glLoadIdentity();
     calculateCameraDiraction();
-    
 
     GLVector3f move = {0, 0, 0};
     if (keys['w'])
@@ -90,8 +89,7 @@ void display() {
     GLVector3ScaleTo(0.3, &move);
     GLVector3AddTo(move, &cameraPos);
 
-	glCallList(displayList);
-
+    glCallList(displayList);
 
     frameUpdate(fpsUpdate);
 
