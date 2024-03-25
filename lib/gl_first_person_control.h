@@ -34,8 +34,16 @@ void firstPersonMouse(int x, int y) {
     int deltaY = y - lastMouseY;
     lastMouseX = x;
     lastMouseY = y;
-    cameraAngle.x += (float)-deltaY * M_Ang2Rad * mouseSensitivity;
-    cameraAngle.y += (float)deltaX * M_Ang2Rad * mouseSensitivity;
+    cameraAngle.x += (float)-deltaY * mouseSensitivity;
+    if (cameraAngle.x > 89.9999)
+        cameraAngle.x = 89.9999;
+    else if (cameraAngle.x < -89.9999)
+        cameraAngle.x = -89.9999;
+    cameraAngle.y += (float)deltaX * mouseSensitivity;
+    if (cameraAngle.x > 360)
+        cameraAngle.x -= 360;
+    else if (cameraAngle.x < -360)
+        cameraAngle.x += 360;
 
     if (abs(lastMouseX - windowCenterX) > 5 || abs(lastMouseY - windowCenterY) > 5) {
         firstPersonMouseReset();
@@ -52,13 +60,34 @@ void firstPersonWindowSizeUpdate(int width, int height) {
     windowCenterY = height >> 1;
 }
 
-void calculateCameraDiraction() {
-    cameraVec.x = cos(cameraAngle.y) * cos(cameraAngle.x);
-    cameraVec.y = sin(cameraAngle.x);
-    cameraVec.z = sin(cameraAngle.y) * cos(cameraAngle.x);
+void calculateCameraMovement() {
+    double cameraAngley = cameraAngle.y * M_Ang2Rad;
+    double cameraAnglex = cameraAngle.x * M_Ang2Rad;
+    cameraVec.x = cos(cameraAngley) * cos(cameraAnglex);
+    cameraVec.y = sin(cameraAnglex);
+    cameraVec.z = sin(cameraAngley) * cos(cameraAnglex);
+
+    glLoadIdentity();
     gluLookAt(cameraPos.x, cameraPos.y, cameraPos.z,
               cameraPos.x + cameraVec.x, cameraPos.y + cameraVec.y, cameraPos.z + cameraVec.z,
               0, 1, 0);  // up direction
+
+    GLVector3f move = {0, 0, 0};
+    if (keys['w'])
+        move = (GLVector3f){cameraVec.x, 0, cameraVec.z};
+    else if (keys['s'])
+        move = (GLVector3f){-cameraVec.x, 0, -cameraVec.z};
+
+    if (keys['d']) {
+        GLVector3f right = GLVector3Cross((GLVector3f){cameraVec.x, 0, cameraVec.z}, (GLVector3f){0, 1, 0});
+        GLVector3AddTo(right, &move);
+    } else if (keys['a']) {
+        GLVector3f right = GLVector3Cross((GLVector3f){cameraVec.x, 0, cameraVec.z}, (GLVector3f){0, -1, 0});
+        GLVector3AddTo(right, &move);
+    }
+    GLVector3NormalizeTo(&move);
+    GLVector3ScaleTo(0.3, &move);
+    GLVector3AddTo(move, &cameraPos);
 }
 
 #endif

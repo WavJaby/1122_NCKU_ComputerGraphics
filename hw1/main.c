@@ -69,25 +69,7 @@ void display() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  // Clear color and depth buffers
     glMatrixMode(GL_MODELVIEW);                          // To operate on model-view matrix
 
-    glLoadIdentity();
-    calculateCameraDiraction();
-
-    GLVector3f move = {0, 0, 0};
-    if (keys['w'])
-        move = (GLVector3f){cameraVec.x, 0, cameraVec.z};
-    else if (keys['s'])
-        move = (GLVector3f){-cameraVec.x, 0, -cameraVec.z};
-
-    if (keys['d']) {
-        GLVector3f right = GLVector3Cross((GLVector3f){cameraVec.x, 0, cameraVec.z}, (GLVector3f){0, 1, 0});
-        GLVector3AddTo(right, &move);
-    } else if (keys['a']) {
-        GLVector3f right = GLVector3Cross((GLVector3f){cameraVec.x, 0, cameraVec.z}, (GLVector3f){0, -1, 0});
-        GLVector3AddTo(right, &move);
-    }
-    GLVector3NormalizeTo(&move);
-    GLVector3ScaleTo(0.3, &move);
-    GLVector3AddTo(move, &cameraPos);
+    calculateCameraMovement();
 
     glCallList(displayList);
 
