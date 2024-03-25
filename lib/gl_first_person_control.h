@@ -25,8 +25,11 @@ void firstPersonMouseReset() {
 
 void firstPersonMouse(int x, int y) {
     // printf("%d, %d\n", x, y);
-    if (lastMouseX == -1)
+    if (lastMouseX == -1) {
         firstPersonMouseReset();
+        // lastMouseX = x;
+        // lastMouseY = y;
+    }
     if (lastMouseX == x && lastMouseY == y)
         return;
 
@@ -45,13 +48,14 @@ void firstPersonMouse(int x, int y) {
     else if (cameraAngle.x < -360)
         cameraAngle.x += 360;
 
-    if (abs(lastMouseX - windowCenterX) > 5 || abs(lastMouseY - windowCenterY) > 5) {
-        firstPersonMouseReset();
-    }
+    // if (abs(lastMouseX - windowCenterX) > 5 || abs(lastMouseY - windowCenterY) > 5) {
+    //     firstPersonMouseReset();
+    // }
 }
 
 void firstPersonInit() {
-    firstPersonMouseReset();
+    glutSetCursor(GLUT_CURSOR_NONE);
+    // firstPersonMouseReset();
     userInputMouseFunc(firstPersonMouse);
 }
 
@@ -68,9 +72,14 @@ void calculateCameraMovement() {
     cameraVec.z = sin(cameraAngley) * cos(cameraAnglex);
 
     glLoadIdentity();
+    // glTranslatef(cameraPos.x, cameraPos.y, cameraPos.z);
+    // glRotatef(cameraAngle.y, 0, 1, 0);
+    // glRotatef(cameraAngle.x, 0, 1, 0);
     gluLookAt(cameraPos.x, cameraPos.y, cameraPos.z,
               cameraPos.x + cameraVec.x, cameraPos.y + cameraVec.y, cameraPos.z + cameraVec.z,
               0, 1, 0);  // up direction
+
+    // printf("%f, %f, %f\n", cameraVec.x, cameraVec.y, cameraVec.z);
 
     GLVector3f move = {0, 0, 0};
     if (keys['w'])
@@ -86,7 +95,7 @@ void calculateCameraMovement() {
         GLVector3AddTo(right, &move);
     }
     GLVector3NormalizeTo(&move);
-    GLVector3ScaleTo(0.3, &move);
+    GLVector3ScaleTo(1.0, &move);
     GLVector3AddTo(move, &cameraPos);
 }
 

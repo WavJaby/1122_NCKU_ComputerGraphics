@@ -8,11 +8,12 @@
 #include "stl_reader.h"
 
 char title[32] = "F74114760 hw1";
-int refreshMills = 1000 / 60;  // refresh interval in milliseconds
+int refreshMills = 1000 / 200;  // refresh interval in milliseconds
 
 int nTriangles = 0;
 STriangle* triangles = 0;
 GLuint displayList;
+GLfloat angle = 0;
 
 void fpsUpdate(float fps) {
     char cBuffer[64];
@@ -22,9 +23,6 @@ void fpsUpdate(float fps) {
 
 /* Initialize OpenGL Graphics */
 void initGL() {
-    glutSetCursor(GLUT_CURSOR_NONE);
-    glutSetKeyRepeat(GLUT_KEY_REPEAT_OFF);
-
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);               // Set background color to black and opaque
     glClearDepth(1.0f);                                 // Set background depth to farthest
     glEnable(GL_DEPTH_TEST);                            // Enable depth testing for z-culling
@@ -32,7 +30,7 @@ void initGL() {
     glShadeModel(GL_SMOOTH);                            // Enable smooth shading
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);  // Nice perspective corrections
 
-    glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
+    glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_FALSE);
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
 
@@ -63,6 +61,9 @@ void initGL() {
     glEnd();
 
     glEndList();
+
+    cameraPos = (GLVector3f){0, 0, -400};
+    cameraAngle = (GLVector3f){0, 90, 0};
 }
 
 void display() {
@@ -71,10 +72,16 @@ void display() {
 
     calculateCameraMovement();
 
+    if (keys['x'])
+        angle += 10;
+    if (keys['z'])
+        angle -= 10;
+
+    glRotatef(90, 1, 0, 0);
+    glRotatef(angle, 0, 1, 0);
     glCallList(displayList);
 
     frameUpdate(fpsUpdate);
-
     glutSwapBuffers();
 }
 
