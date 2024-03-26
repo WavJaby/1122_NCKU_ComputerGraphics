@@ -217,7 +217,7 @@ void loadStlBinary(const char* fileName, STrianglesInfo* trianglesInfo) {
 
     // Read triangle count
     uint32_t listSize = 0;
-    fread(listSize, 4, 1, file);
+    fread(&listSize, 4, 1, file);
     if (listSize < 0) {
         fprintf(stderr, "Invalid STL file: Triangle count %d\n", listSize);
         goto ERROR_HANDLE;
@@ -250,7 +250,7 @@ void loadStlBinary(const char* fileName, STrianglesInfo* trianglesInfo) {
 
         uint16_t attrCount = *(uint16_t*)(tmpBuff + 48);
     }
-    
+
     fclose(file);
     calculateTriangleInfo(triList, listSize, trianglesInfo);
     return;

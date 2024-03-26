@@ -9,7 +9,7 @@
 
 char title[32] = "F74114760 hw1";
 const int tickMills = 1000 / 60;
-int refreshMills = 1000 / 70;  // refresh interval in milliseconds
+int refreshMills = 1000 / 100;  // refresh interval in milliseconds
 
 STrianglesInfo triInfo;
 GLuint displayList, gridListX, gridListZ;
@@ -18,7 +18,7 @@ GLfloat angle = 0;
 void fpsUpdate(float fps, float tick) {
     char cBuffer[64];
     sprintf(cBuffer, "%s fps: %.2f, tick: %.2f", title, fps, tick);
-    printf("%s\n", cBuffer);
+    // printf("%s\n", cBuffer);
     glutSetWindowTitle(cBuffer);
 }
 
@@ -35,18 +35,18 @@ void initGL() {
     glEnable(GL_BLEND);
 
     glEnable(GL_COLOR_MATERIAL);
-    glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_FALSE);
-    glEnable(GL_LIGHT0);
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+    glShadeModel(GL_SMOOTH);
 
-    GLfloat ambientLight[] = {0.2, 0.2, 0.2, 1.0};
-    GLfloat diffuseLight[] = {0.8, 0.8, 0.8, 1.0};
+    GLfloat ambientLight[] = {0.001, 0.001, 0.001, 1.0};
+    GLfloat diffuseLight[] = {0.01, 0.01, 0.01, 1.0};
     GLfloat specularLight[] = {1.0, 1.0, 1.0, 1.0};
+    GLfloat lightPosition[] = {10.0, 10.0, 10.0, 1.0};
+    glEnable(GL_LIGHT0);
+    glLightfv(GL_LIGHT0, GL_POSITION, specularLight);
     glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
     glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
-
-    GLfloat lightPosition[] = {0.0, 1.0, 0.0, 1.0};
-    glLightfv(GL_LIGHT0, GL_POSITION, specularLight);
 
     loadStlASCII("Bunny_ASCII.stl", &triInfo);
     printf("%d triangles loaded\n", triInfo.trianglesCount);
@@ -73,7 +73,7 @@ void initGL() {
     glEnd();
     glEndList();
 
-    int gridCount = 20;
+    int gridCount = 10;
     gridListX = glGenLists(1);
     glNewList(gridListX, GL_COMPILE);
     glBegin(GL_LINES);
@@ -129,7 +129,7 @@ void update() {
     if (keys['x'])
         angle += 2;
     if (keys['z'])
-        angle -= 10;
+        angle -= 2;
     calculateCameraMovement();
     tickUpdate(fpsUpdate);
 }
@@ -154,17 +154,15 @@ void reshape(GLsizei width, GLsizei height) {
 struct timespec drawTime = {0};
 void frameTimer(int value) {
     glutPostRedisplay();  // Post re-paint request to activate display()
-    uint64_t millis = getTimePass(&drawTime) / 1000 - refreshMills;
-    if (millis < 0)
-        millis = 0;
-    printf("%d\n", millis);
-    glutTimerFunc(millis > refreshMills ? 1 : (refreshMills - millis), frameTimer, 0);
+    glutTimerFunc(refreshMills, frameTimer, 0);
 }
 
 void updateTimer(int value) {
     update();
-    if (keys['\033'])
+    if (keys['\033']) {
         glutDestroyWindow(glutGetWindow());
+        return;
+    }
     glutTimerFunc(tickMills, updateTimer, 0);
 }
 

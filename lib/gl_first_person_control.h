@@ -19,7 +19,7 @@ GLVector3f cameraVec = {0.0, 0.0, 0.0};
 float mouseSensitivity = 0.1;
 
 int lastMouseX = -1, lastMouseY = -1;
-float moveSpeed = 1;
+float moveSpeed = 0.1;
 
 void firstPersonMouseReset() {
     lastMouseX = windowCenterX;
