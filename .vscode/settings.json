@@ -9,6 +9,7 @@
         "gl.h": "c",
         "gl_first_person_control.h": "c",
         "gl_user_input.h": "c",
-        "compare": "c"
+        "compare": "c",
+        "random": "c"
     }
 }

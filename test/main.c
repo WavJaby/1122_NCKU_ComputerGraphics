@@ -162,11 +162,11 @@ void display() {
     glutSwapBuffers();  // Swap the front and back frame buffers (double buffering)
 }
 
-void timer(int value) {
+void frameTimer(int value) {
     glutPostRedisplay();  // Post re-paint request to activate display()
     if (keys['\033'])
         glutDestroyWindow(glutGetWindow());
-    glutTimerFunc(refreshMills, timer, 0);  // next timer call milliseconds later
+    glutTimerFunc(refreshMills, frameTimer, 0);  // next timer call milliseconds later
 }
 
 /* Handler for window re-size event. Called back when the window first appears and
@@ -200,7 +200,7 @@ int main(int argc, char** argv) {
     userInputInit();
     firstPersonInit();
     initGL();                    // OpenGL initialization
-    glutTimerFunc(0, timer, 0);  // First timer call immediately
+    glutTimerFunc(0, frameTimer, 0);  // First timer call immediately
     glutMainLoop();              // Enter the infinite event-processing loop
     return 0;
 }

@@ -8,16 +8,17 @@
 #include "stl_reader.h"
 
 char title[32] = "F74114760 hw1";
-int refreshMills = 1000 / 200;  // refresh interval in milliseconds
+const int tickMills = 1000 / 60;
+int refreshMills = 1000 / 70;  // refresh interval in milliseconds
 
-int nTriangles = 0;
-STriangle* triangles = 0;
-GLuint displayList;
+STrianglesInfo triInfo;
+GLuint displayList, gridListX, gridListZ;
 GLfloat angle = 0;
 
-void fpsUpdate(float fps) {
+void fpsUpdate(float fps, float tick) {
     char cBuffer[64];
-    sprintf(cBuffer, "%s fps: %.2f", title, fps);
+    sprintf(cBuffer, "%s fps: %.2f, tick: %.2f", title, fps, tick);
+    printf("%s\n", cBuffer);
     glutSetWindowTitle(cBuffer);
 }
 
@@ -30,8 +31,11 @@ void initGL() {
     glShadeModel(GL_SMOOTH);                            // Enable smooth shading
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);  // Nice perspective corrections
 
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
+
+    glEnable(GL_COLOR_MATERIAL);
     glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_FALSE);
-    glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
 
     GLfloat ambientLight[] = {0.2, 0.2, 0.2, 1.0};
@@ -44,25 +48,53 @@ void initGL() {
     GLfloat lightPosition[] = {0.0, 1.0, 0.0, 1.0};
     glLightfv(GL_LIGHT0, GL_POSITION, specularLight);
 
-    triangles = loadStlASCII("Bunny_ASCII.stl", &nTriangles);
-    printf("%d triangles loaded\n", nTriangles);
+    loadStlASCII("Bunny_ASCII.stl", &triInfo);
+    printf("%d triangles loaded\n", triInfo.trianglesCount);
 
-    // Display List
+    // Create model
     displayList = glGenLists(1);
     glNewList(displayList, GL_COMPILE);
-
     glBegin(GL_TRIANGLES);
-    for (int i = 0; i < nTriangles; ++i) {
-        glNormal3fv(triangles[i].normal);
-        glVertex3fv(triangles[i].a);
-        glVertex3fv(triangles[i].b);
-        glVertex3fv(triangles[i].c);
+    for (int i = 0; i < triInfo.trianglesCount; ++i) {
+        glNormal3fv(triInfo.triangles[i].normal);
+        glVertex3f(
+            triInfo.triangles[i].a[0] - triInfo.center.x,
+            triInfo.triangles[i].a[1] - triInfo.center.y,
+            triInfo.triangles[i].a[2] - triInfo.center.z);
+        glVertex3f(
+            triInfo.triangles[i].b[0] - triInfo.center.x,
+            triInfo.triangles[i].b[1] - triInfo.center.y,
+            triInfo.triangles[i].b[2] - triInfo.center.z);
+        glVertex3f(
+            triInfo.triangles[i].c[0] - triInfo.center.x,
+            triInfo.triangles[i].c[1] - triInfo.center.y,
+            triInfo.triangles[i].c[2] - triInfo.center.z);
     }
     glEnd();
-
     glEndList();
 
-    cameraPos = (GLVector3f){0, 0, -400};
+    int gridCount = 20;
+    gridListX = glGenLists(1);
+    glNewList(gridListX, GL_COMPILE);
+    glBegin(GL_LINES);
+    for (int i = -gridCount; i <= gridCount; ++i) {
+        glVertex3f(-gridCount, 0, i);
+        glVertex3f(gridCount, 0, i);
+    }
+    glEnd();
+    glEndList();
+
+    gridListZ = glGenLists(1);
+    glNewList(gridListZ, GL_COMPILE);
+    glBegin(GL_LINES);
+    for (int i = -gridCount; i <= gridCount; ++i) {
+        glVertex3f(i, 0, -gridCount);
+        glVertex3f(i, 0, gridCount);
+    }
+    glEnd();
+    glEndList();
+
+    cameraPos = (GLVector3f){0, 1, -3};
     cameraAngle = (GLVector3f){0, 90, 0};
 }
 
@@ -70,19 +102,36 @@ void display() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  // Clear color and depth buffers
     glMatrixMode(GL_MODELVIEW);                          // To operate on model-view matrix
 
-    calculateCameraMovement();
+    calculateCameraMatrix();
+    glPushMatrix();
 
+    glEnable(GL_LIGHTING);
+    glColor3f(1, 1, 1);
+    glTranslatef(0, 0.5, 0);
+    glRotatef(-90, 1, 0, 0);
+    glRotatef(angle, 0, 1, 0);
+    float scale = 1 / triInfo.maxSize;
+    glScalef(scale, scale, scale);
+    glCallList(displayList);
+    glPopMatrix();
+
+    glDisable(GL_LIGHTING);
+    glColor4f(1, 0, 0, 0.8);
+    glCallList(gridListX);
+    glColor4f(0, 0, 1, 0.8);
+    glCallList(gridListZ);
+
+    frameUpdate();
+    glutSwapBuffers();
+}
+
+void update() {
     if (keys['x'])
         angle += 10;
     if (keys['z'])
         angle -= 10;
-
-    glRotatef(90, 1, 0, 0);
-    glRotatef(angle, 0, 1, 0);
-    glCallList(displayList);
-
-    frameUpdate(fpsUpdate);
-    glutSwapBuffers();
+    calculateCameraMovement();
+    tickUpdate(fpsUpdate);
 }
 
 void reshape(GLsizei width, GLsizei height) {
@@ -102,25 +151,36 @@ void reshape(GLsizei width, GLsizei height) {
     gluPerspective(45.0f, aspect, 0.1f, 1000.0f);
 }
 
-void timer(int value) {
+struct timespec drawTime = {0};
+void frameTimer(int value) {
     glutPostRedisplay();  // Post re-paint request to activate display()
+    uint64_t millis = getTimePass(&drawTime) / 1000 - refreshMills;
+    if (millis < 0)
+        millis = 0;
+    printf("%d\n", millis);
+    glutTimerFunc(millis > refreshMills ? 1 : (refreshMills - millis), frameTimer, 0);
+}
+
+void updateTimer(int value) {
+    update();
     if (keys['\033'])
         glutDestroyWindow(glutGetWindow());
-    glutTimerFunc(refreshMills, timer, 0);  // next timer call milliseconds later
+    glutTimerFunc(tickMills, updateTimer, 0);
 }
 
 int main(int argc, char* argv[]) {
     glutInit(&argc, argv);                                      // Initialize GLUT
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH | GLUT_RGBA);  // Enable double buffered mode
-    glutInitWindowSize(1280, 720);                              // Set the window's initial width & height
-    glutInitWindowPosition(50, 50);                             // Position the window's initial top-left corner
-    glutCreateWindow(title);                                    // Create window with the given title
+    glutInitWindowSize(1280, 720);                              // Set the window width & height
+    glutInitWindowPosition(50, 50);                             // Position the window
+    glutCreateWindow(title);                                    // Create window with title
     glutDisplayFunc(display);                                   // Register callback handler for window re-paint event
     glutReshapeFunc(reshape);                                   // Register callback handler for window re-size event
     userInputInit();
     firstPersonInit();
-    initGL();                    // OpenGL initialization
-    glutTimerFunc(0, timer, 0);  // First timer call immediately
-    glutMainLoop();              // Enter the infinite event-processing loop
+    initGL();
+    glutTimerFunc(0, frameTimer, 0);
+    glutTimerFunc(0, updateTimer, 0);
+    glutMainLoop();
     return 0;
 }
