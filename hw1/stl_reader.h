@@ -5,11 +5,71 @@
 
 #include "lib/gl_vector.h"
 
-typedef struct STriangle {
+typedef struct _STriangle {
     float normal[3], a[3], b[3], c[3];
 } STriangle;
 
-STriangle* loadStlASCII(const char* pPathname, uint32_t* nTriangles) {
+typedef struct _STrianglesInfo {
+    GLVector3f boundMax, boundMin;
+    GLVector3f center;
+    STriangle* triangles;
+    uint32_t trianglesCount;
+    float maxSize;
+} STrianglesInfo;
+
+void calculateTriangleInfo(STriangle* triangles, uint32_t trianglesCount, STrianglesInfo* info) {
+    info->trianglesCount = trianglesCount;
+    info->triangles = triangles;
+    if (trianglesCount == 0) {
+        info->boundMin = info->boundMax = info->center = (GLVector3f){0, 0, 0};
+        return;
+    }
+    float min[3], max[3];
+    info->boundMin = info->boundMax = (GLVector3f){0, 0, 0};
+
+    for (uint32_t i = 0; i < trianglesCount; i++) {
+        if (i == 0) {
+            for (uint8_t axis = 0; axis < 3; axis++) {
+                min[axis] = max[axis] = triangles[i].a[axis];
+            }
+        }
+
+        for (uint8_t axis = 0; axis < 3; axis++) {
+            if (triangles[i].a[axis] < min[axis])
+                min[axis] = triangles[i].a[axis];
+            else if (triangles[i].a[axis] > max[axis])
+                max[axis] = triangles[i].a[axis];
+            if (triangles[i].b[axis] < min[axis])
+                min[axis] = triangles[i].b[axis];
+            else if (triangles[i].b[axis] > max[axis])
+                max[axis] = triangles[i].b[axis];
+            if (triangles[i].c[axis] < min[axis])
+                min[axis] = triangles[i].c[axis];
+            else if (triangles[i].c[axis] > max[axis])
+                max[axis] = triangles[i].c[axis];
+        }
+    }
+    float wx = min[0] + max[0], wy = min[1] + max[1], wz = min[2] + max[2];
+    info->center.x = wx / 2.0f;
+    info->center.y = wy / 2.0f;
+    info->center.z = wz / 2.0f;
+
+    info->boundMin.x = min[0];
+    info->boundMin.y = min[1];
+    info->boundMin.z = min[2];
+
+    info->boundMax.x = max[0];
+    info->boundMax.y = max[1];
+    info->boundMax.z = max[2];
+
+    info->maxSize = wx;
+    if (wy > info->maxSize)
+        info->maxSize = wy;
+    if (wz > info->maxSize)
+        info->maxSize = wz;
+}
+
+void loadStlASCII(const char* fileName, STrianglesInfo* trianglesInfo) {
     const char* solid = "solid";
     const char* endsolid = "endsolid";
     const char endsolidLen = strlen(endsolid);
@@ -28,22 +88,22 @@ STriangle* loadStlASCII(const char* pPathname, uint32_t* nTriangles) {
     const char* vertex = "vertex";
     const int vertexLen = strlen(vertex);
 
-    if (!pPathname) {
+    if (!fileName) {
         fprintf(stderr, "Invalid file path\n");
-        return NULL;
+        return;
     }
 
-    FILE* file = fopen(pPathname, "r");
+    FILE* file = fopen(fileName, "r");
     if (!file) {
-        fprintf(stderr, "Failed to open file '%s'\n", pPathname);
-        return NULL;
+        fprintf(stderr, "Failed to open file '%s'\n", fileName);
+        return;
     }
 
     char str[256];
     if (!fgets(str, sizeof(str), file) || strncmp(str, solid, strlen(solid)) != 0) {
         fprintf(stderr, "Invalid STL file\n");
         fclose(file);
-        return NULL;
+        return;
     }
 
     STriangle* triList = NULL;
@@ -128,25 +188,24 @@ STriangle* loadStlASCII(const char* pPathname, uint32_t* nTriangles) {
     }
 
     fclose(file);
-    *nTriangles = listSize;
-    return triList;
+    calculateTriangleInfo(triList, listSize, trianglesInfo);
+    return;
 ERROR_HANDLE:
-    *nTriangles = listSize;
-    free(triList);
     fclose(file);
-    return NULL;
+    calculateTriangleInfo(triList, listSize, trianglesInfo);
+    free(triList);
 }
 
-STriangle* loadStlBinary(const char* pPathname, uint32_t* nTriangles) {
-    if (!pPathname) {
+void loadStlBinary(const char* fileName, STrianglesInfo* trianglesInfo) {
+    if (!fileName) {
         fprintf(stderr, "Invalid file path\n");
-        return NULL;
+        return;
     }
 
-    FILE* file = fopen(pPathname, "rb");
+    FILE* file = fopen(fileName, "rb");
     if (!file) {
-        fprintf(stderr, "Failed to open file '%s'\n", pPathname);
-        return NULL;
+        fprintf(stderr, "Failed to open file '%s'\n", fileName);
+        return;
     }
 
     uint8_t tmpBuff[80];
@@ -157,16 +216,17 @@ STriangle* loadStlBinary(const char* pPathname, uint32_t* nTriangles) {
     }
 
     // Read triangle count
-    fread(nTriangles, 4, 1, file);
-    if (nTriangles < 0) {
-        fprintf(stderr, "Invalid STL file: Triangle count %d\n", *nTriangles);
+    uint32_t listSize = 0;
+    fread(listSize, 4, 1, file);
+    if (listSize < 0) {
+        fprintf(stderr, "Invalid STL file: Triangle count %d\n", listSize);
         goto ERROR_HANDLE;
     }
 
     // Allocate array
-    STriangle* triList = (STriangle*)malloc(sizeof(STriangle) * (*nTriangles));
+    STriangle* triList = (STriangle*)malloc(sizeof(STriangle) * listSize);
 
-    for (size_t i = 0; i < (*nTriangles); i++) {
+    for (size_t i = 0; i < listSize; i++) {
         len = fread(tmpBuff, 1, 50, file);
         if (len != 50) {
             fprintf(stderr, "Invalid STL file: Bad triangle data length\n");
@@ -190,12 +250,12 @@ STriangle* loadStlBinary(const char* pPathname, uint32_t* nTriangles) {
 
         uint16_t attrCount = *(uint16_t*)(tmpBuff + 48);
     }
-
+    
     fclose(file);
-    return triList;
+    calculateTriangleInfo(triList, listSize, trianglesInfo);
+    return;
 ERROR_HANDLE:
-    *nTriangles = 0;
-    free(triList);
     fclose(file);
-    return NULL;
+    calculateTriangleInfo(triList, listSize, trianglesInfo);
+    free(triList);
 }

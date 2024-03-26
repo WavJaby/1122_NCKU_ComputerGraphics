@@ -32,6 +32,7 @@ void firstPersonMouse(int x, int y) {
     if (lastMouseX == -1 && (x || y)) {
         lastMouseX = x;
         lastMouseY = y;
+        printf("Mouse init\n");
         return;
     }
     if (lastMouseX == x && lastMouseY == y)
@@ -52,9 +53,9 @@ void firstPersonMouse(int x, int y) {
     else if (cameraAngle.x < -360)
         cameraAngle.x += 360;
 
-    // printf("%f\n", cameraAngle.x);
-
-    firstPersonMouseReset();
+    if (abs(lastMouseX - windowCenterX) > 5 || abs(lastMouseY - windowCenterY) > 5) {
+        firstPersonMouseReset();
+    }
 }
 
 void firstPersonInit() {
@@ -75,16 +76,6 @@ void calculateCameraMovement() {
     cameraVec.y = sin(cameraAnglex);
     cameraVec.z = sin(cameraAngley) * cos(cameraAnglex);
 
-    glLoadIdentity();
-    // glTranslatef(cameraPos.x, cameraPos.y, cameraPos.z);
-    // glRotatef(cameraAngle.y, 0, 1, 0);
-    // glRotatef(cameraAngle.x, 0, 1, 0);
-    gluLookAt(cameraPos.x, cameraPos.y, cameraPos.z,
-              cameraPos.x + cameraVec.x, cameraPos.y + cameraVec.y, cameraPos.z + cameraVec.z,
-              0, 1, 0);  // up direction
-
-    // printf("%f, %f, %f\n", cameraVec.x, cameraVec.y, cameraVec.z);
-
     GLVector3f move = {0, 0, 0};
     if (keys['w'])
         move = (GLVector3f){cameraVec.x, 0, cameraVec.z};
@@ -103,6 +94,18 @@ void calculateCameraMovement() {
     if (keys[' '])
         GLVector3AddTo((GLVector3f){0, moveSpeed, 0}, &move);
     GLVector3AddTo(move, &cameraPos);
+}
+
+void calculateCameraMatrix() {
+    glLoadIdentity();
+    // glTranslatef(cameraPos.x, cameraPos.y, cameraPos.z);
+    // glRotatef(cameraAngle.y, 0, 1, 0);
+    // glRotatef(cameraAngle.x, 0, 1, 0);
+    gluLookAt(cameraPos.x, cameraPos.y, cameraPos.z,
+              cameraPos.x + cameraVec.x, cameraPos.y + cameraVec.y, cameraPos.z + cameraVec.z,
+              0, 1, 0);  // up direction
+
+    // printf("%f, %f, %f\n", cameraVec.x, cameraVec.y, cameraVec.z);
 }
 
 #endif
