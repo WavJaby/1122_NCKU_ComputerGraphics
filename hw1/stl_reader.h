@@ -9,7 +9,7 @@ typedef struct STriangle {
     float normal[3], a[3], b[3], c[3];
 } STriangle;
 
-STriangle* loadStlASCII(const char* pPathname, int* nTriangles) {
+STriangle* loadStlASCII(const char* pPathname, uint32_t* nTriangles) {
     const char* solid = "solid";
     const char* endsolid = "endsolid";
     const char endsolidLen = strlen(endsolid);
@@ -47,8 +47,8 @@ STriangle* loadStlASCII(const char* pPathname, int* nTriangles) {
     }
 
     STriangle* triList = NULL;
-    int listSize = 0;
-    int capacity = 10;  // Initial capacity
+    uint32_t listSize = 0;
+    uint32_t capacity = 10;  // Initial capacity
     triList = (STriangle*)malloc(sizeof(STriangle) * capacity);
 
     while (!feof(file)) {
@@ -132,6 +132,69 @@ STriangle* loadStlASCII(const char* pPathname, int* nTriangles) {
     return triList;
 ERROR_HANDLE:
     *nTriangles = listSize;
+    free(triList);
+    fclose(file);
+    return NULL;
+}
+
+STriangle* loadStlBinary(const char* pPathname, uint32_t* nTriangles) {
+    if (!pPathname) {
+        fprintf(stderr, "Invalid file path\n");
+        return NULL;
+    }
+
+    FILE* file = fopen(pPathname, "rb");
+    if (!file) {
+        fprintf(stderr, "Failed to open file '%s'\n", pPathname);
+        return NULL;
+    }
+
+    uint8_t tmpBuff[80];
+    size_t len = fread(tmpBuff, 1, sizeof(tmpBuff), file);
+    if (len != sizeof(tmpBuff)) {
+        fprintf(stderr, "Invalid STL file: Bad header\n");
+        goto ERROR_HANDLE;
+    }
+
+    // Read triangle count
+    fread(nTriangles, 4, 1, file);
+    if (nTriangles < 0) {
+        fprintf(stderr, "Invalid STL file: Triangle count %d\n", *nTriangles);
+        goto ERROR_HANDLE;
+    }
+
+    // Allocate array
+    STriangle* triList = (STriangle*)malloc(sizeof(STriangle) * (*nTriangles));
+
+    for (size_t i = 0; i < (*nTriangles); i++) {
+        len = fread(tmpBuff, 1, 50, file);
+        if (len != 50) {
+            fprintf(stderr, "Invalid STL file: Bad triangle data length\n");
+            goto ERROR_HANDLE;
+        }
+        triList[i].normal[0] = *(float*)(tmpBuff);
+        triList[i].normal[1] = *(float*)(tmpBuff + 4);
+        triList[i].normal[2] = *(float*)(tmpBuff + 8);
+
+        triList[i].a[0] = *(float*)(tmpBuff + 12);
+        triList[i].a[1] = *(float*)(tmpBuff + 16);
+        triList[i].a[2] = *(float*)(tmpBuff + 20);
+
+        triList[i].b[0] = *(float*)(tmpBuff + 24);
+        triList[i].b[1] = *(float*)(tmpBuff + 28);
+        triList[i].b[2] = *(float*)(tmpBuff + 32);
+
+        triList[i].c[0] = *(float*)(tmpBuff + 36);
+        triList[i].c[1] = *(float*)(tmpBuff + 40);
+        triList[i].c[2] = *(float*)(tmpBuff + 44);
+
+        uint16_t attrCount = *(uint16_t*)(tmpBuff + 48);
+    }
+
+    fclose(file);
+    return triList;
+ERROR_HANDLE:
+    *nTriangles = 0;
     free(triList);
     fclose(file);
     return NULL;

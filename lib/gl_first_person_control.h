@@ -2,6 +2,9 @@
 #define __GL_FIRST_PERSION_CONTROL_H__
 
 #include <GL/glut.h>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #include "gl_user_input.h"
 #include "gl_vector.h"
@@ -9,13 +12,14 @@
 #define M_PI 3.14159265358979323846
 #define M_Ang2Rad 0.01745329251
 
-int windowCenterX = 0, windowCenterY = 0;
+int windowCenterX = -1, windowCenterY = -1;
 GLVector3f cameraPos = {0.0, 0.0, 0.0};
 GLVector3f cameraAngle = {0.0, 0.0, 0.0};
 GLVector3f cameraVec = {0.0, 0.0, 0.0};
-float mouseSensitivity = 0.2;
+float mouseSensitivity = 0.1;
 
 int lastMouseX = -1, lastMouseY = -1;
+float moveSpeed = 1;
 
 void firstPersonMouseReset() {
     lastMouseX = windowCenterX;
@@ -25,10 +29,10 @@ void firstPersonMouseReset() {
 
 void firstPersonMouse(int x, int y) {
     // printf("%d, %d\n", x, y);
-    if (lastMouseX == -1) {
-        firstPersonMouseReset();
-        // lastMouseX = x;
-        // lastMouseY = y;
+    if (lastMouseX == -1 && (x || y)) {
+        lastMouseX = x;
+        lastMouseY = y;
+        return;
     }
     if (lastMouseX == x && lastMouseY == y)
         return;
@@ -48,20 +52,20 @@ void firstPersonMouse(int x, int y) {
     else if (cameraAngle.x < -360)
         cameraAngle.x += 360;
 
-    // if (abs(lastMouseX - windowCenterX) > 5 || abs(lastMouseY - windowCenterY) > 5) {
-    //     firstPersonMouseReset();
-    // }
+    // printf("%f\n", cameraAngle.x);
+
+    firstPersonMouseReset();
 }
 
 void firstPersonInit() {
     glutSetCursor(GLUT_CURSOR_NONE);
-    // firstPersonMouseReset();
     userInputMouseFunc(firstPersonMouse);
 }
 
 void firstPersonWindowSizeUpdate(int width, int height) {
     windowCenterX = width >> 1;
     windowCenterY = height >> 1;
+    printf("WindowSize: %dx%d\n", width, height);
 }
 
 void calculateCameraMovement() {
@@ -95,7 +99,9 @@ void calculateCameraMovement() {
         GLVector3AddTo(right, &move);
     }
     GLVector3NormalizeTo(&move);
-    GLVector3ScaleTo(1.0, &move);
+    GLVector3ScaleTo(moveSpeed, &move);
+    if (keys[' '])
+        GLVector3AddTo((GLVector3f){0, moveSpeed, 0}, &move);
     GLVector3AddTo(move, &cameraPos);
 }
 

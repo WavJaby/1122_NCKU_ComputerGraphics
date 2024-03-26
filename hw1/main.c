@@ -8,7 +8,7 @@
 #include "stl_reader.h"
 
 char title[32] = "F74114760 hw1";
-int refreshMills = 1000 / 200;  // refresh interval in milliseconds
+int refreshMills = 1000 / 100;  // refresh interval in milliseconds
 
 int nTriangles = 0;
 STriangle* triangles = 0;
@@ -44,13 +44,13 @@ void initGL() {
     GLfloat lightPosition[] = {0.0, 1.0, 0.0, 1.0};
     glLightfv(GL_LIGHT0, GL_POSITION, specularLight);
 
-    triangles = loadStlASCII("Bunny_ASCII.stl", &nTriangles);
+    triangles = loadStlBinary("Bunny_Binary.stl", &nTriangles);
+    // loadStlASCII("Bunny_ASCII.stl", &nTriangles);
     printf("%d triangles loaded\n", nTriangles);
 
     // Display List
     displayList = glGenLists(1);
     glNewList(displayList, GL_COMPILE);
-
     glBegin(GL_TRIANGLES);
     for (int i = 0; i < nTriangles; ++i) {
         glNormal3fv(triangles[i].normal);
@@ -59,7 +59,6 @@ void initGL() {
         glVertex3fv(triangles[i].c);
     }
     glEnd();
-
     glEndList();
 
     cameraPos = (GLVector3f){0, 0, -400};
@@ -73,11 +72,11 @@ void display() {
     calculateCameraMovement();
 
     if (keys['x'])
-        angle += 10;
+        angle += 2;
     if (keys['z'])
-        angle -= 10;
+        angle -= 2;
 
-    glRotatef(90, 1, 0, 0);
+    glRotatef(-90, 1, 0, 0);
     glRotatef(angle, 0, 1, 0);
     glCallList(displayList);
 
@@ -104,8 +103,10 @@ void reshape(GLsizei width, GLsizei height) {
 
 void timer(int value) {
     glutPostRedisplay();  // Post re-paint request to activate display()
-    if (keys['\033'])
+    if (keys['\033']) {
         glutDestroyWindow(glutGetWindow());
+        return;
+    }
     glutTimerFunc(refreshMills, timer, 0);  // next timer call milliseconds later
 }
 
