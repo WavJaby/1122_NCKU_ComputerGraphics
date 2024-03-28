@@ -5,10 +5,10 @@
 #include <stdio.h>
 #include <time.h>
 
-int avgTimes = 5, frames, countAvg;
-float fps, tick;
+#define FPS_COUNTER_AVG 10
 
-struct timespec tickStart = {0};
+int fpsCounter_frameCount;
+float deltaTimeTick;
 
 uint64_t getTimePass(struct timespec *start) {
     struct timespec end;
@@ -24,20 +24,30 @@ uint64_t getTimePass(struct timespec *start) {
 }
 
 void tickUpdate(void (*fpsUpdate)(float fps, float tick)) {
+    static struct timespec tickStart = {0}, tickTime = {0};
+    static int countAvg = 0;
+
+    deltaTimeTick = (getTimePass(&tickTime) / 1000000.0f);
     countAvg++;
     // Do periodic frame rate calculation
-    if (countAvg == avgTimes) {
+    if (countAvg == FPS_COUNTER_AVG) {
         float time = getTimePass(&tickStart) / 1000000.0f;
-        fps = (float)frames / time;
-        tick = (float)avgTimes / time;
-        fpsUpdate(fps, tick);
-        frames = 0;
+        float fps = (float)fpsCounter_frameCount / time;
+        float tick = (float)FPS_COUNTER_AVG / time;
+        if (fpsUpdate)
+            fpsUpdate(fps, tick);
+        fpsCounter_frameCount = 0;
         countAvg = 0;
     }
 }
 
+void fpsCounterInit() {
+    tickUpdate(NULL);
+    deltaTimeTick = 0;
+}
+
 void frameUpdate() {
-    frames++;
+    fpsCounter_frameCount++;
 }
 
 #endif

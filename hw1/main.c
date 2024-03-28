@@ -7,17 +7,20 @@
 #include "lib/gl_vector.h"
 #include "stl_reader.h"
 
+#define FPS 120
+
 char title[32] = "F74114760 hw1";
 const int tickMills = 1000 / 60;
-int refreshMills = 1000 / 100;  // refresh interval in milliseconds
+int refreshMills = 1000 / FPS;  // refresh interval in milliseconds
 
 STrianglesInfo triInfo;
 GLuint displayList, gridListX, gridListZ;
 GLfloat angle = 0;
+GLfloat lightPosition[] = {1.0, 10.0, -1.0, 1.0};
 
 void fpsUpdate(float fps, float tick) {
     char cBuffer[64];
-    sprintf(cBuffer, "%s fps: %.2f, tick: %.2f", title, fps, tick);
+    sprintf(cBuffer, "%s fps: %.2f, tick: %.2f, delta: %.6f", title, fps, tick, deltaTimeTick);
     // printf("%s\n", cBuffer);
     glutSetWindowTitle(cBuffer);
 }
@@ -38,12 +41,11 @@ void initGL() {
     glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
     glShadeModel(GL_SMOOTH);
 
+    // Light
     GLfloat ambientLight[] = {0.001, 0.001, 0.001, 1.0};
     GLfloat diffuseLight[] = {0.01, 0.01, 0.01, 1.0};
     GLfloat specularLight[] = {1.0, 1.0, 1.0, 1.0};
-    GLfloat lightPosition[] = {10.0, 10.0, 10.0, 1.0};
     glEnable(GL_LIGHT0);
-    glLightfv(GL_LIGHT0, GL_POSITION, specularLight);
     glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
     glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
@@ -73,6 +75,7 @@ void initGL() {
     glEnd();
     glEndList();
 
+    // XZ grid plane`
     int gridCount = 10;
     gridListX = glGenLists(1);
     glNewList(gridListX, GL_COMPILE);
@@ -105,6 +108,8 @@ void display() {
     calculateCameraMatrix();
     glPushMatrix();
 
+    glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
+
     glEnable(GL_LIGHTING);
     glColor3f(1, 1, 1);
     glTranslatef(0, 0.5, 0);
@@ -126,10 +131,10 @@ void display() {
 }
 
 void update() {
-    if (keys['x'])
-        angle += 2;
-    if (keys['z'])
-        angle -= 2;
+    if (keys['X'])
+        angle += 90 * deltaTimeTick;
+    if (keys['Z'])
+        angle -= 90 * deltaTimeTick;
     calculateCameraMovement();
     tickUpdate(fpsUpdate);
 }
@@ -159,7 +164,7 @@ void frameTimer(int value) {
 
 void updateTimer(int value) {
     update();
-    if (keys['\033']) {
+    if (keys[GLUT_KEY_ESC]) {
         glutDestroyWindow(glutGetWindow());
         return;
     }
@@ -170,13 +175,14 @@ int main(int argc, char* argv[]) {
     glutInit(&argc, argv);                                      // Initialize GLUT
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH | GLUT_RGBA);  // Enable double buffered mode
     glutInitWindowSize(1280, 720);                              // Set the window width & height
-    glutInitWindowPosition(50, 50);                             // Position the window
+    glutInitWindowPosition(0, 50);                              // Position the window
     glutCreateWindow(title);                                    // Create window with title
     glutDisplayFunc(display);                                   // Register callback handler for window re-paint event
     glutReshapeFunc(reshape);                                   // Register callback handler for window re-size event
     userInputInit();
     firstPersonInit();
     initGL();
+    fpsCounterInit();
     glutTimerFunc(0, frameTimer, 0);
     glutTimerFunc(0, updateTimer, 0);
     glutMainLoop();

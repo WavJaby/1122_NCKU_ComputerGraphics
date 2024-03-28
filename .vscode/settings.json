@@ -10,6 +10,9 @@
         "gl_first_person_control.h": "c",
         "gl_user_input.h": "c",
         "compare": "c",
-        "windows.h": "c"
+        "windows.h": "c",
+        "stdio.h": "c",
+        "random": "c",
+        "limits": "c"
     }
 }

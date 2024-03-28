@@ -2,24 +2,105 @@
 #define __GL_USER_INPUT_H__
 
 #include <GL/glut.h>
+
+// #define DEBUGKEY
+#define GLUT_KEY_ESC 0x001B
+#define GLUT_KEY_LEFTSHIFT 0x0070
+#define GLUT_KEY_RIGHTSHIFT 0x0071
+#define GLUT_KEY_BACKSPACE 0x006D
+#define GLUT_KEY_TAB 0x006E
+
 char keys[255] = {0};
 
+static inline unsigned char keyMapping(unsigned char key) {
+    switch (key) {
+    case '!':
+        return '1';
+    case '@':
+        return '2';
+    case '#':
+        return '3';
+    case '$':
+        return '4';
+    case '%':
+        return '5';
+    case '^':
+        return '6';
+    case '&':
+        return '7';
+    case '*':
+        return '8';
+    case '(':
+        return '9';
+    case ')':
+        return '0';
+    case '_':
+        return '-';
+    case '+':
+        return '=';
+    case '{':
+        return '[';
+    case '}':
+        return ']';
+    case '|':
+        return '\\';
+    case ':':
+        return ';';
+    case '"':
+        return '\'';
+    case '~':
+        return '`';
+    case '<':
+        return ',';
+    case '>':
+        return '.';
+    case '?':
+        return '/';
+    case '\x8':
+        return GLUT_KEY_BACKSPACE;
+    case '\x9':
+        return GLUT_KEY_TAB;
+    default:
+        if (key >= 'a' && key <= 'z')
+            return key - 32;
+    }
+    return key;
+}
+
 void keyDown(unsigned char key, int x, int y) {
-    if (key >= 'A' && key <= 'Z')
-        key += 32;
-    keys[key] = 1;
+    keys[keyMapping(key)] = 1;
+#ifdef DEBUGKEY
+    printf(">%d\n", keyMapping(key));
+#endif
 }
 
 void keyUp(unsigned char key, int x, int y) {
-    if (key >= 'A' && key <= 'Z')
-        key += 32;
+    keys[keyMapping(key)] = 0;
+#ifdef DEBUGKEY
+    printf(" %d\n", keyMapping(key));
+#endif
+}
+
+void specialKeyDown(int key, int x, int y) {
+    keys[key] = 1;
+#ifdef DEBUGKEY
+    printf("-%d\n", key);
+#endif
+}
+
+void specialKeyUp(int key, int x, int y) {
     keys[key] = 0;
+#ifdef DEBUGKEY
+    printf(" %d\n", key);
+#endif
 }
 
 void userInputInit() {
     glutSetKeyRepeat(GLUT_KEY_REPEAT_OFF);
     glutKeyboardFunc(keyDown);
     glutKeyboardUpFunc(keyUp);
+    glutSpecialFunc(specialKeyDown);
+    glutSpecialUpFunc(specialKeyUp);
 }
 
 void userInputMouseFunc(void (*callback)(int, int)) {
