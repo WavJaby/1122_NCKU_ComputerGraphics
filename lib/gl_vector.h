@@ -4,7 +4,7 @@
 #include <GL/glut.h>
 #include <math.h>
 
-void mouseReset();
+#define printVector(message, glvec3) printf("%s(%.5f, %.5f, %.5f)\n", message, (glvec3)->x, (glvec3)->y, (glvec3)->z)
 
 typedef struct GLVector3f {
     GLfloat x, y, z;

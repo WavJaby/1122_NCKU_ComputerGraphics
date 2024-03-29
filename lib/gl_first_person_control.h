@@ -11,19 +11,21 @@
 #define M_PI 3.14159265358979323846
 #define M_Ang2Rad 0.01745329251
 
-#define FLY_TOGGLE_INTERVAL 200
+#define FLY_TOGGLE_INTERVAL 300
 
 float mouseSensitivity = 1.5;
-float moveSpeed = 2;
+float flySpeed = 7, flyAcc = 40;
+float moveSpeed = 3, runningSpeed = 5, moveAcc = 50;
 
+float jumpVelocity = 3;
 float gravityY = -9.81;
-float friction = 0.8;
-bool flying = true, spaceKeyPress = false;
+float friction = 0.8, frictionAir = 0.2;
+bool flying = true, running = false, spaceKeyPress = false;
 struct timespec spaceKeyInterval;
 
 int windowCenterX = -1, windowCenterY = -1;
 GLVector3f cameraPos = {0.0, 0.0, 0.0};
-GLVector3f cameraVolcity = {0.0, 0.0, 0.0};
+GLVector3f cameraVelocity = {0.0, 0.0, 0.0};
 GLVector3f cameraAngle = {0.0, 0.0, 0.0};
 GLVector3f cameraVec = {0.0, 0.0, 0.0};
 
@@ -85,57 +87,95 @@ void calculateCameraMovement() {
     cameraVec.y = sin(cameraAnglex);
     cameraVec.z = sin(cameraAngley) * cos(cameraAnglex);
 
+    // XZ friction
+    GLVector3f v = cameraVelocity;
+    v.y = 0;
+    float speed = GLVector3Length(v);
+    if (speed > 0) {
+        float n = 1 * -gravityY;
+        float f = (flying ? frictionAir : friction) * n * deltaTimeTick;
+
+        GLVector3f frictionAcc = (GLVector3f){0, 0, 0};
+        GLVector3MinusTo(v, &frictionAcc);
+        if (speed < f) {
+            cameraVelocity.x = 0;
+            cameraVelocity.z = 0;
+        } else {
+            GLVector3ScaleTo(f, &frictionAcc);
+            GLVector3AddTo(frictionAcc, &cameraVelocity);
+        }
+    }
+
+    // XZ movement
     bool anyKey = false;
-    GLVector3f move = {0, 0, 0};
+    GLVector3f moveAccXZ = {0, 0, 0};
     if (keys['W']) {
-        GLVector3AddTo((GLVector3f){cameraVec.x, 0, cameraVec.z}, &move);
+        GLVector3AddTo((GLVector3f){cameraVec.x, 0, cameraVec.z}, &moveAccXZ);
         anyKey = true;
     }
     if (keys['S']) {
-        GLVector3AddTo((GLVector3f){-cameraVec.x, 0, -cameraVec.z}, &move);
+        GLVector3AddTo((GLVector3f){-cameraVec.x, 0, -cameraVec.z}, &moveAccXZ);
         anyKey = true;
     }
     if (keys['D']) {
         GLVector3f right = GLVector3Cross((GLVector3f){cameraVec.x, 0, cameraVec.z}, (GLVector3f){0, 1, 0});
-        GLVector3AddTo(right, &move);
+        GLVector3AddTo(right, &moveAccXZ);
         anyKey = true;
-    } else if (keys['A']) {
+    }
+    if (keys['A']) {
         GLVector3f right = GLVector3Cross((GLVector3f){cameraVec.x, 0, cameraVec.z}, (GLVector3f){0, -1, 0});
-        GLVector3AddTo(right, &move);
+        GLVector3AddTo(right, &moveAccXZ);
         anyKey = true;
     }
-
     if (anyKey) {
-        GLVector3NormalizeTo(&move);
-        GLVector3ScaleTo(moveSpeed * deltaTimeTick, &move);
-        GLVector3AddTo(move, &cameraVolcity);
+        GLVector3NormalizeTo(&moveAccXZ);
+        GLVector3ScaleTo((flying ? flyAcc : moveAcc) * deltaTimeTick, &moveAccXZ);
+        GLVector3AddTo(moveAccXZ, &cameraVelocity);
+        // Limit speed
+        v = cameraVelocity;
+        v.y = 0;
+        float speed = GLVector3Length(v);
+        float maxSpeed = (flying ? flySpeed : (running ? runningSpeed : moveSpeed));
+        if (speed > maxSpeed) {
+            GLVector3NormalizeTo(&v);
+            GLVector3ScaleTo(maxSpeed, &v);
+            cameraVelocity.x = v.x;
+            cameraVelocity.z = v.z;
+        }
+        // printf("%f\n",GLVector3Length(v));
     }
 
-    GLVector3f v = cameraVolcity;
-    v.y = 0;
-    float speed = GLVector3Length(v);
-    if (speed > 0) {
-        GLVector3f frictionAcc = (GLVector3f){0, 0, 0};
-        GLVector3MinusTo(v, &frictionAcc);
-        GLVector3ScaleTo(fmin(speed, friction), &frictionAcc);
-        GLVector3AddTo(frictionAcc, &cameraVolcity);
-        printf("%f\n", speed);
-    }
-
-    // Y
+    // Y movement
     if (flying) {
-        if (keys[' ']) {
-            GLVector3AddTo((GLVector3f){0, moveSpeed * deltaTimeTick, 0}, &cameraVolcity);
+        anyKey = false;
+        if (keys[' '] && !keys[GLUT_KEY_LEFTSHIFT]) {
+            cameraVelocity.y = moveSpeed;
+            anyKey = true;
         }
-        if (keys[GLUT_KEY_LEFTSHIFT]) {
-            GLVector3AddTo((GLVector3f){0, -moveSpeed * deltaTimeTick, 0}, &cameraVolcity);
+        if (keys[GLUT_KEY_LEFTSHIFT] && !keys[' ']) {
+            cameraVelocity.y = -moveSpeed;
+            anyKey = true;
         }
+        if (!anyKey)
+            cameraVelocity.y = 0;
     } else {
-        // velocityY += gravityY * deltaTimeTick;
-        // cameraPos.y += velocityY * deltaTimeTick;
-        if (cameraPos.y < 1)
-            cameraPos.y = 1;
+        cameraVelocity.y += gravityY * deltaTimeTick;
+        if (keys[' '] && cameraPos.y < 1.0001)
+            cameraVelocity.y = jumpVelocity;
+        running = keys[GLUT_KEY_LEFTSHIFT];
     }
+    v = cameraVelocity;
+    GLVector3ScaleTo(deltaTimeTick, &v);
+    GLVector3AddTo(v, &cameraPos);
+    // Ground
+    if (cameraPos.y < 1) {
+        cameraPos.y = 1;
+        cameraVelocity.y = 0;
+        if (flying)
+            flying = false;
+    }
+
+    // Fly mode toggle
     if (!keys[' '])
         spaceKeyPress = false;
     else if (!spaceKeyPress) {
@@ -145,7 +185,6 @@ void calculateCameraMovement() {
         if (interval < FLY_TOGGLE_INTERVAL)
             flying = !flying;
     }
-    GLVector3AddTo(cameraVolcity, &cameraPos);
 }
 
 void calculateCameraMatrix() {

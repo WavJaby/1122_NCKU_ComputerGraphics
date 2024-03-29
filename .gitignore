@@ -1,7 +1,8 @@
 /.vscode/c_cpp_properties.json
-/**/freeglut/
 /*/build/
 /*/lib/
-/dll/
+/freeglut/
+/freetype/
+/bin/
 *.exe
 *.out

@@ -49,10 +49,9 @@ void calculateTriangleInfo(STriangle* triangles, uint32_t trianglesCount, STrian
                 max[axis] = triangles[i].c[axis];
         }
     }
-    float wx = min[0] + max[0], wy = min[1] + max[1], wz = min[2] + max[2];
-    info->center.x = wx / 2.0f;
-    info->center.y = wy / 2.0f;
-    info->center.z = wz / 2.0f;
+    info->center.x = (min[0] + max[0]) / 2.0f;
+    info->center.y = (min[1] + max[1]) / 2.0f;
+    info->center.z = (min[2] + max[2]) / 2.0f;
 
     info->boundMin.x = min[0];
     info->boundMin.y = min[1];
@@ -62,15 +61,16 @@ void calculateTriangleInfo(STriangle* triangles, uint32_t trianglesCount, STrian
     info->boundMax.y = max[1];
     info->boundMax.z = max[2];
 
-    info->maxSize = wx;
+    float wy = max[1] - min[1], wz = max[2] - min[2];
+    info->maxSize = max[0] - min[0];
     if (wy > info->maxSize)
         info->maxSize = wy;
     if (wz > info->maxSize)
         info->maxSize = wz;
 }
 
-void loadStlASCII(const char* fileName, STrianglesInfo* trianglesInfo) {
-    const char* solid = "solid";
+const char* solid = "solid ";
+void loadStlASCII(FILE* file, STrianglesInfo* trianglesInfo) {
     const char* endsolid = "endsolid";
     const char endsolidLen = strlen(endsolid);
     const char* facet = "facet";
@@ -87,17 +87,6 @@ void loadStlASCII(const char* fileName, STrianglesInfo* trianglesInfo) {
     const int endloopLen = strlen(endloop);
     const char* vertex = "vertex";
     const int vertexLen = strlen(vertex);
-
-    if (!fileName) {
-        fprintf(stderr, "Invalid file path\n");
-        return;
-    }
-
-    FILE* file = fopen(fileName, "r");
-    if (!file) {
-        fprintf(stderr, "Failed to open file '%s'\n", fileName);
-        return;
-    }
 
     char str[256];
     if (!fgets(str, sizeof(str), file) || strncmp(str, solid, strlen(solid)) != 0) {
@@ -196,18 +185,7 @@ ERROR_HANDLE:
     free(triList);
 }
 
-void loadStlBinary(const char* fileName, STrianglesInfo* trianglesInfo) {
-    if (!fileName) {
-        fprintf(stderr, "Invalid file path\n");
-        return;
-    }
-
-    FILE* file = fopen(fileName, "rb");
-    if (!file) {
-        fprintf(stderr, "Failed to open file '%s'\n", fileName);
-        return;
-    }
-
+void loadStlBinary(FILE* file, STrianglesInfo* trianglesInfo) {
     uint8_t tmpBuff[80];
     size_t len = fread(tmpBuff, 1, sizeof(tmpBuff), file);
     if (len != sizeof(tmpBuff)) {
@@ -258,4 +236,30 @@ ERROR_HANDLE:
     fclose(file);
     calculateTriangleInfo(triList, listSize, trianglesInfo);
     free(triList);
+}
+
+void loadStl(const char* fileName, STrianglesInfo* trianglesInfo) {
+    if (!fileName) {
+        fprintf(stderr, "Invalid file path\n");
+        return;
+    }
+
+    FILE* file = fopen(fileName, "rb");
+    if (!file) {
+        fprintf(stderr, "Failed to open file '%s'\n", fileName);
+        return;
+    }
+
+    char str[256];
+    if (!fgets(str, sizeof(str), file)) {
+        fprintf(stderr, "Failed to read file '%s'\n", fileName);
+        return;
+    }
+    rewind(file);
+
+    if (strncmp(str, solid, strlen(solid)) == 0) {
+        loadStlASCII(file, trianglesInfo);
+    } else {
+        loadStlBinary(file, trianglesInfo);
+    }
 }
