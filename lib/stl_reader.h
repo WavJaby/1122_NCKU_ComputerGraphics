@@ -1,9 +1,10 @@
 #include <math.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "lib/gl_vector.h"
+#include "gl_vector.h"
 
 typedef struct _STriangle {
     float normal[3], a[3], b[3], c[3];

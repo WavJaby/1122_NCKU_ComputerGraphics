@@ -36,7 +36,7 @@
             "program": "${fileDirname}/build/main.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}/build",
+            "cwd": "${fileDirname}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",

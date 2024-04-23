@@ -17,7 +17,7 @@ float mouseSensitivity = 1.5;
 float flySpeed = 7, flyAcc = 40;
 float moveSpeed = 3, runningSpeed = 5, moveAcc = 50;
 
-float jumpVelocity = 3;
+float jumpVelocity = 4;
 float gravityY = -9.81;
 float friction = 0.8, frictionAir = 0.2;
 bool flying = true, running = false, spaceKeyPress = false;
@@ -160,7 +160,7 @@ void calculateCameraMovement() {
             cameraVelocity.y = 0;
     } else {
         cameraVelocity.y += gravityY * deltaTimeTick;
-        if (keys[' '] && cameraPos.y < 1.0001)
+        if (keys[' '] && cameraPos.y < 2.0001)
             cameraVelocity.y = jumpVelocity;
         running = keys[GLUT_KEY_LEFTSHIFT];
     }
@@ -168,8 +168,8 @@ void calculateCameraMovement() {
     GLVector3ScaleTo(deltaTimeTick, &v);
     GLVector3AddTo(v, &cameraPos);
     // Ground
-    if (cameraPos.y < 1) {
-        cameraPos.y = 1;
+    if (cameraPos.y < 2) {
+        cameraPos.y = 2;
         cameraVelocity.y = 0;
         if (flying)
             flying = false;

@@ -30,6 +30,8 @@
         "mem_track_util.h": "c",
         "wjcl_mem_track.h": "c",
         "wjcl_mem_track_util.h": "c",
-        "wjcl_linked_list.h": "c"
+        "wjcl_linked_list.h": "c",
+        "math.h": "c",
+        "stdbool.h": "c"
     }
 }

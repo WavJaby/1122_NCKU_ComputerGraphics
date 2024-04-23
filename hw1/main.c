@@ -7,7 +7,7 @@
 #include "lib/gl_user_input.h"
 #include "lib/gl_vector.h"
 #include "lib/gl_text.h"
-#include "stl_reader.h"
+#include "lib/stl_reader.h"
 #ifdef _WIN32
 #include "open_file_dialog.h"
 #endif
@@ -43,6 +43,10 @@ void loadModel(char* path) {
     glNewList(displayList, GL_COMPILE);
     glBegin(GL_TRIANGLES);
     for (int i = 0; i < triInfo.trianglesCount; ++i) {
+        // float* normalRaw = triInfo.triangles[i].normal;
+        // GLVector3f normal = {.x = normalRaw[0], .y = normalRaw[1], .z = normalRaw[2]};
+        // printf("%f\n", GLVector3Length(normal));
+        // glNormal3f(normal.x, normal.y, normal.z);
         glNormal3fv(triInfo.triangles[i].normal);
         glVertex3f(
             triInfo.triangles[i].a[0] - triInfo.center.x,
@@ -89,9 +93,11 @@ void initGL() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+    glEnable(GL_NORMALIZE);
+
     // Light
     GLfloat ambientLight[] = {0.001, 0.001, 0.001, 1.0};
-    GLfloat diffuseLight[] = {0.01, 0.01, 0.01, 1.0};
+    GLfloat diffuseLight[] = {0.8, 0.8, 0.8, 1.0};
     GLfloat specularLight[] = {1.0, 1.0, 1.0, 1.0};
     glEnable(GL_LIGHT0);
     glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
@@ -200,7 +206,6 @@ void display() {
 bool openFileDone = false;
 GLVector3f cameraAngleSave;
 void update() {
-
     userInputInitUpdate();
     calculateCameraMovement();
 
@@ -208,7 +213,7 @@ void update() {
         welcome = false;
     if (welcome)
         return;
-        
+
     if (keys['X'])
         angle += 90 * deltaTimeTick;
     if (keys['Z'])
