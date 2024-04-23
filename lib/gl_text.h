@@ -7,6 +7,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#ifdef _WIN32
+#define FONT_FILE_NAME "C:/Windows/Fonts/Calibri.ttf"
+#else
+#define FONT_FILE_NAME "/usr/share/fonts/truetype/noto/NotoMono-Regular.ttf"
+#endif
+
 #define glGetChar(char) glChars[char - 32]
 
 typedef struct CharInfo {
@@ -31,7 +37,7 @@ void glTextInit() {
     }
 
     error = FT_New_Face(library,
-                        "C:/Windows/Fonts/Calibri.ttf",
+                        FONT_FILE_NAME,
                         0,
                         &face);
     if (error == FT_Err_Unknown_File_Format) {

@@ -1,17 +1,16 @@
 #include <GL/glut.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #define MEM_TRACK
 #define WJCL_HASH_MAP_IMPLEMENTATION
 #define WJCL_LINKED_LIST_IMPLEMENTATION
 #include "../../WJCL/memory/wjcl_mem_track.h"
-
 #include "lib/fps_counter.h"
 #include "lib/gl_first_person_control.h"
+#include "lib/gl_text.h"
 #include "lib/gl_user_input.h"
 #include "lib/gl_vector.h"
-#include "lib/gl_text.h"
 #include "lib/stl_reader.h"
 #ifdef _WIN32
 
@@ -29,7 +28,7 @@ STrianglesInfo triInfo;
 GLuint gridListX, gridListZ;
 GLuint displayList[10];
 GLfloat cogAngle = 0;
-GLfloat lightPosition[] = {1.0, 10.0, 1.0, 1.0};
+GLfloat lightPosition[] = {1.0, 5.0, 1.0, 1.0};
 char fpsInfo[64];
 bool debugText = true, welcome = false;
 
@@ -67,12 +66,16 @@ void loadModel(GLuint* displayList, char* path) {
 
 void drawRect(float x, float y, float w, float h) {
     glBegin(GL_QUADS);
+    glNormal3f(0, 0, 1);
     glTexCoord2f(0.0, 0.0);
     glVertex3f(x, y + h, 0.0f);
+    glNormal3f(0, 0, 1);
     glTexCoord2f(0.0, 1.0);
     glVertex3f(x, y, 0.0f);
+    glNormal3f(0, 0, 1);
     glTexCoord2f(1.0, 1.0);
     glVertex3f(x + w, y, 0.0f);
+    glNormal3f(0, 0, 1);
     glTexCoord2f(1.0, 0.0);
     glVertex3f(x + w, y + h, 0.0f);
     glEnd();
@@ -94,6 +97,8 @@ void initGL() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glEnable(GL_NORMALIZE);
+    glFrontFace(GL_CCW);     // Counter clock-wise polygons face out
+    glEnable(GL_CULL_FACE);  // Do not calculate inside of jet
 
     // Light
     GLfloat ambientLight[] = {0.001, 0.001, 0.001, 1.0};
@@ -143,6 +148,33 @@ void initGL() {
 }
 
 void display() {
+    // GLuint depthMapFBO;
+    // glGenFramebuffers(1, &depthMapFBO);
+    // const GLuint SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+
+    // GLuint depthMap;
+    // glGenTextures(1, &depthMap);
+    // glBindTexture(GL_TEXTURE_2D, depthMap);
+    // glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+    //              SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    // glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    // glDrawBuffer(GL_NONE);
+    // glReadBuffer(GL_NONE);
+    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+    // glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    // glClear(GL_DEPTH_BUFFER_BIT);
+    // ConfigureShaderAndMatrices();
+    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // glViewport(0, 0, windowWidth, windowHeight);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  // Clear color and depth buffers
     glMatrixMode(GL_MODELVIEW);
     calculateCameraMatrix();
@@ -150,6 +182,7 @@ void display() {
     // Lighting
     glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
     glEnable(GL_LIGHTING);
+    glEnable(GL_TEXTURE_SHADOW);
     // Render model
     glPushMatrix();
     glColor3f(1, 1, 1);
@@ -187,6 +220,9 @@ void display() {
     glTranslatef(0, (14 + 1.5) / 16.f, 1 + 15 / 16.f);
     glCallList(displayList[7]);
     glPopMatrix();
+
+    glRotatef(-90, 1, 0, 0);
+    drawRect(-10, -10, 20, 20);
 
     glPopMatrix();
     // Render xz grid
@@ -251,6 +287,9 @@ void update() {
         return;
 
     cogAngle += 180 * deltaTimeTick;
+    if (cogAngle > 360) cogAngle -= 360;
+    if (cogAngle < 0) cogAngle += 360;
+
     if (keysOnPress[GLUT_KEY_F3])
         debugText = !debugText;
 
