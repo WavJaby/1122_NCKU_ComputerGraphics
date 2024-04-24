@@ -8,6 +8,7 @@
 #include "lib/gl_vector.h"
 #include "lib/gl_text.h"
 #include "lib/stl_reader.h"
+#include "lib/debug_grid.h"
 #ifdef _WIN32
 #include "open_file_dialog.h"
 #endif
@@ -21,7 +22,8 @@ int refreshMills = 1000 / FPS;  // refresh interval in milliseconds
 int windowWidth, windowHeight;
 float windowAspect;
 STrianglesInfo triInfo;
-GLuint displayList, gridListX, gridListZ;
+GLuint xzGridList;
+GLuint displayList;
 GLfloat angle = 0;
 GLfloat lightPosition[] = {1.0, 10.0, -1.0, 1.0};
 char fpsInfo[64];
@@ -107,26 +109,7 @@ void initGL() {
     loadModel("Bunny_Binary.stl");
 
     // XZ grid plane
-    int gridCount = 10;
-    gridListX = glGenLists(1);
-    glNewList(gridListX, GL_COMPILE);
-    glBegin(GL_LINES);
-    for (int i = -gridCount; i <= gridCount; ++i) {
-        glVertex3f(-gridCount, 0, i);
-        glVertex3f(gridCount, 0, i);
-    }
-    glEnd();
-    glEndList();
-
-    gridListZ = glGenLists(1);
-    glNewList(gridListZ, GL_COMPILE);
-    glBegin(GL_LINES);
-    for (int i = -gridCount; i <= gridCount; ++i) {
-        glVertex3f(i, 0, -gridCount);
-        glVertex3f(i, 0, gridCount);
-    }
-    glEnd();
-    glEndList();
+    xzGridList = debugGridCreate(10);
 
     // Text texture init
     glTextInit();
@@ -154,11 +137,7 @@ void display() {
     glCallList(displayList);
     glPopMatrix();
     // Render xz grid
-    glDisable(GL_LIGHTING);
-    glColor4f(1, 0, 0, 0.8);
-    glCallList(gridListX);
-    glColor4f(0, 0, 1, 0.8);
-    glCallList(gridListZ);
+    debugGridRender(xzGridList);
 
     // Render UI Begin
     glMatrixMode(GL_PROJECTION);
@@ -222,9 +201,10 @@ void update() {
         debugText = !debugText;
 
     // Open model
+    #ifdef _WIN32
     if (keysOnPress['O']) {
         cameraAngleSave = cameraAngle;
-        TCHAR fileFullPath[260] = {0};
+        char fileFullPath[260] = {0};
         if (openFileDialog(fileFullPath, sizeof(fileFullPath))) {
             loadModel(fileFullPath);
         }
@@ -237,6 +217,7 @@ void update() {
         cameraAngle = cameraAngleSave;
         return;
     }
+    #endif
 
     tickUpdate(fpsUpdate);
 }

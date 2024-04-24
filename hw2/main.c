@@ -6,11 +6,14 @@
 #define WJCL_HASH_MAP_IMPLEMENTATION
 #define WJCL_LINKED_LIST_IMPLEMENTATION
 #include "../../WJCL/memory/wjcl_mem_track.h"
+#include "lib/debug_grid.h"
 #include "lib/fps_counter.h"
+#include "lib/game_object.h"
 #include "lib/gl_first_person_control.h"
 #include "lib/gl_text.h"
 #include "lib/gl_user_input.h"
 #include "lib/gl_vector.h"
+#include "lib/math3d.h"
 #include "lib/stl_reader.h"
 #ifdef _WIN32
 
@@ -24,10 +27,8 @@ int refreshMills = 1000 / FPS;  // refresh interval in milliseconds
 
 int windowWidth, windowHeight;
 float windowAspect;
-STrianglesInfo triInfo;
-GLuint gridListX, gridListZ;
-GLuint displayList[10];
-GLfloat cogAngle = 0;
+GLuint xzGridList;
+GameObject gameObjects[10];
 GLfloat lightPosition[] = {1.0, 5.0, 1.0, 1.0};
 char fpsInfo[64];
 bool debugText = true, welcome = false;
@@ -36,13 +37,14 @@ void fpsUpdate(float fps, float tick) {
     sprintf(fpsInfo, "fps: %.2f, tick: %.2f, delta: %.6f", fps, tick, deltaTimeTick);
 }
 
-void loadModel(GLuint* displayList, char* path) {
+GLuint loadStlModel(char* path) {
+    STrianglesInfo triInfo;
     loadStl(path, &triInfo);
     printf("Triangles: %d\n", triInfo.trianglesCount);
 
     // Create model
-    *displayList = glGenLists(1);
-    glNewList(*displayList, GL_COMPILE);
+    GLuint displayList = glGenLists(1);
+    glNewList(displayList, GL_COMPILE);
     glBegin(GL_TRIANGLES);
     for (int i = 0; i < triInfo.trianglesCount; ++i) {
         glNormal3fv(triInfo.triangles[i].normal);
@@ -62,6 +64,7 @@ void loadModel(GLuint* displayList, char* path) {
     glEnd();
     glEndList();
     free(triInfo.triangles);
+    return displayList;
 }
 
 void drawRect(float x, float y, float w, float h) {
@@ -109,42 +112,36 @@ void initGL() {
     glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
     glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
 
-    loadModel(&displayList[0], "model/block.stl");
-    loadModel(&displayList[1], "model/cog.stl");
-    loadModel(&displayList[2], "model/base.stl");
-    loadModel(&displayList[3], "model/lower_body.stl");
-    loadModel(&displayList[4], "model/upper_body.stl");
-    loadModel(&displayList[5], "model/claw_base.stl");
-    loadModel(&displayList[6], "model/lower_claw_grip.stl");
-    loadModel(&displayList[7], "model/upper_claw_grip.stl");
+    GLuint dispId;
+    gameObjects[0] = (GameObject){(GLVector3f){0, 0, 0}, (GLVector3f){0, 0, 0}, (GLVector3f){0, 0, 0}, loadStlModel("model/block.stl")};
+    gameObjects[1] = (GameObject){(GLVector3f){0, 0, 0}, (GLVector3f){0, 0, 0}, (GLVector3f){0, 0, 0}, loadStlModel("model/cog.stl")};
+    gameObjects[2] = (GameObject){(GLVector3f){0, 0, 0}, (GLVector3f){0, 0, 0}, (GLVector3f){0, 0, 0}, loadStlModel("model/base.stl")};
+    gameObjects[3] = (GameObject){(GLVector3f){0, 14 / 16.f, 0}, (GLVector3f){0, 0, 0}, (GLVector3f){0, 0, 0}, loadStlModel("model/lower_body.stl")};
+    gameObjects[4] = (GameObject){(GLVector3f){0, 14 / 16.f, 1}, (GLVector3f){0, 0, 0}, (GLVector3f){0, 0, 0}, loadStlModel("model/upper_body.stl")};
+    gameObjects[5] = (GameObject){(GLVector3f){0, 14 / 16.f, 1 + 15 / 16.f}, (GLVector3f){0, 0, 0}, (GLVector3f){0, 0, 0}, loadStlModel("model/claw_base.stl")};
+    gameObjects[6] = (GameObject){(GLVector3f){0, (14 - 1.5) / 16.f, 1 + 15 / 16.f}, (GLVector3f){0, 0, 0}, (GLVector3f){0, 0, 0}, loadStlModel("model/lower_claw_grip.stl")};
+    gameObjects[7] = (GameObject){(GLVector3f){0, (14 + 1.5) / 16.f, 1 + 15 / 16.f}, (GLVector3f){0, 0, 0}, (GLVector3f){0, 0, 0}, loadStlModel("model/upper_claw_grip.stl")};
 
     // XZ grid plane
-    int gridCount = 10;
-    gridListX = glGenLists(1);
-    glNewList(gridListX, GL_COMPILE);
-    glBegin(GL_LINES);
-    for (int i = -gridCount; i <= gridCount; ++i) {
-        glVertex3f(-gridCount, 0, i);
-        glVertex3f(gridCount, 0, i);
-    }
-    glEnd();
-    glEndList();
-
-    gridListZ = glGenLists(1);
-    glNewList(gridListZ, GL_COMPILE);
-    glBegin(GL_LINES);
-    for (int i = -gridCount; i <= gridCount; ++i) {
-        glVertex3f(i, 0, -gridCount);
-        glVertex3f(i, 0, gridCount);
-    }
-    glEnd();
-    glEndList();
+    xzGridList = debugGridCreate(10);
 
     // Text texture init
     glTextInit();
 
     cameraPos = (GLVector3f){0, 2, -3};
     cameraAngle = (GLVector3f){0, 90, 0};
+}
+
+void renderObject(GameObject* gameObject) {
+    // Render GameObject
+    glPushMatrix();
+    glTranslatef(gameObject->position.x, gameObject->position.y, gameObject->position.z);
+
+    glRotatef(gameObject->rotation.y, 0, 1, 0);
+    glRotatef(gameObject->rotation.x, 1, 0, 0);
+    glRotatef(gameObject->rotation.z, 0, 0, 1);
+    glCallList(gameObject->modelDispListId);
+    glPopMatrix();
 }
 
 void display() {
@@ -187,50 +184,18 @@ void display() {
     glPushMatrix();
     glColor3f(1, 1, 1);
 
-    glCallList(displayList[0]);
-
-    glPushMatrix();
-    glRotatef(cogAngle, 0, 1, 0);
-    glCallList(displayList[1]);
-    glPopMatrix();
-
-    glCallList(displayList[2]);
-
-    glPushMatrix();
-    glTranslatef(0, 14 / 16.f, 0);
-    glCallList(displayList[3]);
-    glPopMatrix();
-
-    glPushMatrix();
-    glTranslatef(0, 14 / 16.f, 1);
-    glCallList(displayList[4]);
-    glPopMatrix();
-
-    glPushMatrix();
-    glTranslatef(0, 14 / 16.f, 1 + 15 / 16.f);
-    glCallList(displayList[5]);
-    glPopMatrix();
-
-    glPushMatrix();
-    glTranslatef(0, (14 - 1.5) / 16.f, 1 + 15 / 16.f);
-    glCallList(displayList[6]);
-    glPopMatrix();
-
-    glPushMatrix();
-    glTranslatef(0, (14 + 1.5) / 16.f, 1 + 15 / 16.f);
-    glCallList(displayList[7]);
-    glPopMatrix();
+    for (size_t i = 0; i < 10; i++) {
+        if (gameObjects[i].modelDispListId == 0)
+            break;
+        renderObject(&gameObjects[i]);
+    }
 
     glRotatef(-90, 1, 0, 0);
     drawRect(-10, -10, 20, 20);
 
     glPopMatrix();
     // Render xz grid
-    glDisable(GL_LIGHTING);
-    glColor4f(1, 0, 0, 0.8);
-    glCallList(gridListX);
-    glColor4f(0, 0, 1, 0.8);
-    glCallList(gridListZ);
+    debugGridRender(xzGridList);
 
     // Render UI Begin
     glMatrixMode(GL_PROJECTION);
@@ -275,8 +240,6 @@ void display() {
     glutSwapBuffers();
 }
 
-bool openFileDone = false;
-GLVector3f cameraAngleSave;
 void update() {
     userInputInitUpdate();
     calculateCameraMovement();
@@ -286,9 +249,27 @@ void update() {
     if (welcome)
         return;
 
-    cogAngle += 180 * deltaTimeTick;
-    if (cogAngle > 360) cogAngle -= 360;
-    if (cogAngle < 0) cogAngle += 360;
+    GameObject* cog = &gameObjects[1];
+    cog->rotation.y += 180 * deltaTimeTick;
+    if (cog->rotation.y > 360) cog->rotation.y -= 360;
+    if (cog->rotation.y < 0) cog->rotation.y += 360;
+
+    GameObject* base = &gameObjects[2];
+    GameObject* lowerBody = &gameObjects[3];
+    GameObject* upperBody = &gameObjects[4];
+    if (keys['Q']) {
+        base->rotation.y += 180 * deltaTimeTick;
+    }
+    if (keys['A']) {
+        base->rotation.y -= 180 * deltaTimeTick;
+    }
+    lowerBody->rotation.y = base->rotation.y;
+    if (keys['W']) {
+        lowerBody->rotation.x += 180 * deltaTimeTick;
+    }
+    if (keys['S']) {
+        lowerBody->rotation.x -= 180 * deltaTimeTick;
+    }
 
     if (keysOnPress[GLUT_KEY_F3])
         debugText = !debugText;

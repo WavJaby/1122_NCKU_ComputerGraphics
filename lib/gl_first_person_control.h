@@ -109,20 +109,20 @@ void calculateCameraMovement() {
     // XZ movement
     bool anyKey = false;
     GLVector3f moveAccXZ = {0, 0, 0};
-    if (keys['W']) {
+    if (keys[GLUT_KEY_UP]) {
         GLVector3AddTo((GLVector3f){cameraVec.x, 0, cameraVec.z}, &moveAccXZ);
         anyKey = true;
     }
-    if (keys['S']) {
+    if (keys[GLUT_KEY_DOWN]) {
         GLVector3AddTo((GLVector3f){-cameraVec.x, 0, -cameraVec.z}, &moveAccXZ);
         anyKey = true;
     }
-    if (keys['D']) {
+    if (keys[GLUT_KEY_RIGHT]) {
         GLVector3f right = GLVector3Cross((GLVector3f){cameraVec.x, 0, cameraVec.z}, (GLVector3f){0, 1, 0});
         GLVector3AddTo(right, &moveAccXZ);
         anyKey = true;
     }
-    if (keys['A']) {
+    if (keys[GLUT_KEY_LEFT]) {
         GLVector3f right = GLVector3Cross((GLVector3f){cameraVec.x, 0, cameraVec.z}, (GLVector3f){0, -1, 0});
         GLVector3AddTo(right, &moveAccXZ);
         anyKey = true;

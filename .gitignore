@@ -4,5 +4,6 @@
 /freeglut/
 /freetype/
 /bin/
+/util3d/
 *.exe
 *.out
