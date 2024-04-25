@@ -6,15 +6,15 @@
 #define WJCL_HASH_MAP_IMPLEMENTATION
 #define WJCL_LINKED_LIST_IMPLEMENTATION
 #define WJCL_LIST_TYPE_IMPLEMENTATION
-#include "../../WJCL/memory/wjcl_mem_track.h"
-#include "lib/debug_grid.h"
-#include "lib/fps_counter.h"
-#include "lib/game_object.h"
-#include "lib/gl_first_person_control.h"
-#include "lib/gl_text.h"
-#include "lib/gl_user_input.h"
-#include "lib/gl_vector.h"
-#include "lib/stl_reader.h"
+#include "WJCL/memory/wjcl_mem_track.h"
+#include "debug_grid.h"
+#include "fps_counter.h"
+#include "game_object.h"
+#include "gl_first_person_control.h"
+#include "gl_text.h"
+#include "gl_user_input.h"
+#include "gl_vector.h"
+#include "stl_reader.h"
 #ifdef _WIN32
 
 #endif
@@ -178,7 +178,7 @@ void display() {
     drawRect(-10, -10, 20, 20);
 
     glPopMatrix();
-    
+
     // Render xz grid
     glDisable(GL_LIGHTING);
     debugGridRender(xzGridList);

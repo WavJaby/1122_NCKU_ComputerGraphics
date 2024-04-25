@@ -2,7 +2,7 @@
 #define __GAME_OBJECT_H__
 
 #include "gl_vector.h"
-#include "../../../WJCL/list/wjcl_list_t.h"
+#include "WJCL/list/wjcl_list_t.h"
 
 typedef struct game_object {
     GLVector3f position;

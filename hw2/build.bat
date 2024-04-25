@@ -3,6 +3,7 @@ chcp 65001
 xcopy ..\lib .\lib /Y /E /S /H /I /q
 xcopy ..\freeglut\include .\lib /Y /E /S /H /I /q
 xcopy ..\freetype .\lib /Y /E /S /H /I /q
+xcopy ..\..\WJCL .\lib\WJCL /Y /E /S /H /I /q
 @REM xcopy ..\openGLES .\lib /Y /E /S /H /I /q
 
 xcopy ..\bin\*.dll .\build /Y /E /S /H /I /q
