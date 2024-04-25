@@ -6,15 +6,17 @@ For more information, see <https://github.com/WavJaby/1122_NCKU_ComputerGraphics
 ## Basic controls
 
 - Esc: close window
-- w: move foward
-- a: move left
-- s: move backward
-- d: move right
+- up: move foward
+- left: move left
+- down: move backward
+- right: move right
 - Space: fly up or jump
 - Left shift: decline or run
-- x/z: rotate model (homework require)
-- o: open other stl file
 - F3: toggle debug text
+- q/a: rotate j1 axis (homework require)
+- w/s: rotate j2 axis (homework require)
+- e/d: rotate j3 axis (homework require)
+- r/f: rotate j4 axis (homework require)
 
 Double press space to toggle fly mode
 
@@ -40,4 +42,4 @@ make all
 
 ### Linux output executable file path
 
-`main.out`
+`build/main.out`

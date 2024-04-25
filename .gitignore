@@ -1,9 +1,11 @@
 /.vscode/c_cpp_properties.json
+/.vscode/settings.json
 /*/build/
 /*/lib/
 /freeglut/
 /freetype/
 /bin/
 /util3d/
+/openGLES/
 *.exe
 *.out

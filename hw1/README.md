@@ -40,4 +40,4 @@ make all
 
 ### Linux output executable file path
 
-`main.out`
+`build/main.out`
