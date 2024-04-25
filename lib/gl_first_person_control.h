@@ -21,6 +21,7 @@ float jumpVelocity = 4;
 float gravityY = -9.81;
 float friction = 0.8, frictionAir = 0.2;
 bool flying = true, running = false, spaceKeyPress = false;
+bool firstPersonPause = false;
 struct timespec spaceKeyInterval;
 
 int windowCenterX = -1, windowCenterY = -1;
@@ -38,6 +39,8 @@ void firstPersonMouseReset() {
 }
 
 void firstPersonMouse(int x, int y) {
+    if (firstPersonPause) return;
+
     // printf("%d, %d\n", x, y);
     if (lastMouseX == -1 && (x || y)) {
         lastMouseX = x;
@@ -86,6 +89,8 @@ void calculateCameraMovement() {
     cameraVec.x = cos(cameraAngley) * cos(cameraAnglex);
     cameraVec.y = sin(cameraAnglex);
     cameraVec.z = sin(cameraAngley) * cos(cameraAnglex);
+
+    if (firstPersonPause) return;
 
     // XZ friction
     GLVector3f v = cameraVelocity;

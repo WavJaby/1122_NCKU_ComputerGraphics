@@ -31,7 +31,7 @@ GLuint xzGridList;
 GameObject* gameObjects[10];
 GLfloat lightPosition[] = {2.0, 10.0, -2.0, 1.0};
 char fpsInfo[64];
-bool debugText = true, welcome = false;
+bool debugText = true, welcome = true;
 
 void fpsUpdate(float fps, float tick) {
     sprintf(fpsInfo, "fps: %.2f, tick: %.2f, delta: %.6f", fps, tick, deltaTimeTick);
@@ -158,33 +158,6 @@ void renderObject(GameObject* gameObject) {
 }
 
 void display() {
-    // GLuint depthMapFBO;
-    // glGenFramebuffers(1, &depthMapFBO);
-    // const GLuint SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
-
-    // GLuint depthMap;
-    // glGenTextures(1, &depthMap);
-    // glBindTexture(GL_TEXTURE_2D, depthMap);
-    // glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
-    //              SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    // glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
-    // glDrawBuffer(GL_NONE);
-    // glReadBuffer(GL_NONE);
-    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-    // glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    // glClear(GL_DEPTH_BUFFER_BIT);
-    // ConfigureShaderAndMatrices();
-    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // glViewport(0, 0, windowWidth, windowHeight);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  // Clear color and depth buffers
     glMatrixMode(GL_MODELVIEW);
     calculateCameraMatrix();
@@ -205,7 +178,9 @@ void display() {
     drawRect(-10, -10, 20, 20);
 
     glPopMatrix();
+    
     // Render xz grid
+    glDisable(GL_LIGHTING);
     debugGridRender(xzGridList);
 
     // Render UI Begin
@@ -251,15 +226,7 @@ void display() {
     glutSwapBuffers();
 }
 
-void update() {
-    userInputInitUpdate();
-    calculateCameraMovement();
-
-    if (keysOnPress[GLUT_KEY_ENTER])
-        welcome = false;
-    if (welcome)
-        return;
-
+void updateGame() {
     GameObject* cog = listT_get(&gameObjects[0]->childs, GameObject*, 0);
     cog->rotation.y += 180 * deltaTimeTick;
     if (cog->rotation.y > 360) cog->rotation.y -= 360;
@@ -292,9 +259,21 @@ void update() {
     if (keys['F']) clawBase->rotation.x -= 180 * deltaTimeTick;
     if (clawBase->rotation.x > 100) clawBase->rotation.x = 100;
     if (clawBase->rotation.x < -100) clawBase->rotation.x = -100;
+}
 
-    if (keysOnPress[GLUT_KEY_F3])
-        debugText = !debugText;
+void update() {
+    userInputInitUpdate();
+    calculateCameraMovement();
+
+    if (welcome && keysOnPress[GLUT_KEY_ENTER]) {
+        welcome = false;
+        firstPersonPause = false;
+    }
+    if (!welcome) {
+        updateGame();
+        if (keysOnPress[GLUT_KEY_F3])
+            debugText = !debugText;
+    }
 
     tickUpdate(fpsUpdate);
 }
@@ -347,6 +326,7 @@ int main(int argc, char* argv[]) {
     glutDisplayFunc(display);                                   // Register callback handler for window re-paint event
     glutReshapeFunc(reshape);                                   // Register callback handler for window re-size event
     userInputInit();
+    firstPersonPause = true;
     firstPersonInit();
     initGL();
     fpsCounterInit();

@@ -3,7 +3,6 @@
 GLuint debugGridCreate(int gridSize) {
     GLuint xzGridList = glGenLists(2);
     glNewList(xzGridList, GL_COMPILE);
-    glDisable(GL_LIGHTING);
     glColor4f(1, 0, 0, 0.8);
     glBegin(GL_LINES);
     for (int i = -gridSize; i <= gridSize; ++i) {
