@@ -46,22 +46,22 @@ void loadModel(char* path) {
     glBegin(GL_TRIANGLES);
     for (int i = 0; i < triInfo.trianglesCount; ++i) {
         // float* normalRaw = triInfo.triangles[i].normal;
-        // GLVector3f normal = {.x = normalRaw[0], .y = normalRaw[1], .z = normalRaw[2]};
-        // printf("%f\n", GLVector3Length(normal));
+        // Vector3f normal = {.x = normalRaw[0], .y = normalRaw[1], .z = normalRaw[2]};
+        // printf("%f\n", vec3fLength(normal));
         // glNormal3f(normal.x, normal.y, normal.z);
         glNormal3fv(triInfo.triangles[i].normal);
         glVertex3f(
-            triInfo.triangles[i].a[0] - triInfo.center.x,
-            triInfo.triangles[i].a[1] - triInfo.center.y,
-            triInfo.triangles[i].a[2] - triInfo.center.z);
+            triInfo.triangles[i].a[0] - vx(triInfo.center),
+            triInfo.triangles[i].a[1] - vy(triInfo.center),
+            triInfo.triangles[i].a[2] - vz(triInfo.center));
         glVertex3f(
-            triInfo.triangles[i].b[0] - triInfo.center.x,
-            triInfo.triangles[i].b[1] - triInfo.center.y,
-            triInfo.triangles[i].b[2] - triInfo.center.z);
+            triInfo.triangles[i].b[0] - vx(triInfo.center),
+            triInfo.triangles[i].b[1] - vy(triInfo.center),
+            triInfo.triangles[i].b[2] - vz(triInfo.center));
         glVertex3f(
-            triInfo.triangles[i].c[0] - triInfo.center.x,
-            triInfo.triangles[i].c[1] - triInfo.center.y,
-            triInfo.triangles[i].c[2] - triInfo.center.z);
+            triInfo.triangles[i].c[0] - vx(triInfo.center),
+            triInfo.triangles[i].c[1] - vy(triInfo.center),
+            triInfo.triangles[i].c[2] - vz(triInfo.center));
     }
     glEnd();
     glEndList();
@@ -114,8 +114,8 @@ void initGL() {
     // Text texture init
     glTextInit();
 
-    cameraPos = (GLVector3f){0, 1.5, -3};
-    cameraAngle = (GLVector3f){0, 90, 0};
+    vec3fSet(cameraPos, (Vector3f){0, 1.5, -3});
+    vec3fSet(cameraAngle, (Vector3f){0, 90, 0});
 }
 
 void display() {
@@ -149,16 +149,17 @@ void display() {
     glLoadIdentity();
     // printf("%f\n", windowAspect);
 
+    glDisable(GL_LIGHTING);
     if (debugText) {
         glColor4f(1, 1, 1, 1);
         glDrawString(fpsInfo, strlen(fpsInfo), 5, windowHeight - 20, 16);
         char cameraInfo[128];
         sprintf(cameraInfo, "Camera pos: (%.2f, %.2f, %.2f), angle: (%.2f, %.2f)",
-                cameraPos.x, cameraPos.y, cameraPos.z,
-                cameraAngle.x, cameraAngle.y);
+                vx(cameraPos), vy(cameraPos), vz(cameraPos),
+                vx(cameraAngle), vy(cameraAngle));
         glDrawString(cameraInfo, strlen(cameraInfo), 5, windowHeight - 40, 16);
         sprintf(cameraInfo, "Velocity: (%.2f, %.2f, %.2f)",
-                cameraVelocity.x, cameraVelocity.y, cameraVelocity.z);
+                vx(cameraVelocity), vy(cameraVelocity), vz(cameraVelocity));
         glDrawString(cameraInfo, strlen(cameraInfo), 5, windowHeight - 60, 16);
         glDrawString("Press F3 to toggle debug text", 29, 5, windowHeight - 80, 16);
     }
@@ -183,7 +184,7 @@ void display() {
 }
 
 bool openFileDone = false;
-GLVector3f cameraAngleSave;
+Vector3f cameraAngleSave;
 void update() {
     userInputInitUpdate();
     calculateCameraMovement();
@@ -200,10 +201,10 @@ void update() {
     if (keysOnPress[GLUT_KEY_F3])
         debugText = !debugText;
 
-    // Open model
-    #ifdef _WIN32
+// Open model
+#ifdef _WIN32
     if (keysOnPress['O']) {
-        cameraAngleSave = cameraAngle;
+        vec3fSet(cameraAngleSave, cameraAngle);
         char fileFullPath[260] = {0};
         if (openFileDialog(fileFullPath, sizeof(fileFullPath))) {
             loadModel(fileFullPath);
@@ -214,10 +215,10 @@ void update() {
     if (openFileDone) {
         openFileDone = false;
         firstPersonMouseReset();
-        cameraAngle = cameraAngleSave;
+        vec3fSet(cameraAngle, cameraAngleSave);
         return;
     }
-    #endif
+#endif
 
     tickUpdate(fpsUpdate);
 }
@@ -241,7 +242,6 @@ void reshape(GLsizei width, GLsizei height) {
     gluPerspective(45.0f, windowAspect, 0.1f, 1000.0f);
 }
 
-struct timespec drawTime = {0};
 bool glutStoped = false;
 void frameTimer(int value) {
     if (keys[GLUT_KEY_ESC]) {

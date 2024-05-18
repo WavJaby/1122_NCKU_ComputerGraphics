@@ -1,9 +1,7 @@
 @echo off
 chcp 65001
-xcopy ..\lib .\lib /Y /E /S /H /I /q
-xcopy ..\freeglut\include .\lib /Y /E /S /H /I /q
-xcopy ..\freetype .\lib /Y /E /S /H /I /q
 
-xcopy ..\bin\*.dll .\build /Y /E /S /H /I /q
-xcopy ..\freeglut\bin\*.dll .\build /Y /E /S /H /I /q
-gcc -Lbuild/ -Ilib/ -g main.c -o build/main.exe -lfreeglut -lopengl32 -lglu32 -lcomdlg32 -lfreetype
+xcopy ..\lib .\lib /Y /E /S /H /I /q
+call ..\external_lib\libcopy.bat lib build
+
+gcc -Lbuild/ -Ilib/ -Wall -g main.c -o build/main.exe -lfreeglut -lopengl32 -lglu32 -lfreetype -lcomdlg32

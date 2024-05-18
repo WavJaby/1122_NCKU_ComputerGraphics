@@ -5,11 +5,16 @@
 #include <stdio.h>
 #include <time.h>
 
-#define FPS_COUNTER_AVG 10
+#define FPS_UPDATE_INTERVAL 100000
 
 int fpsCounter_frameCount;
 float deltaTimeTick;
 
+/**
+ * @brief Calculate time pass, and update timespec 
+ * @param start 
+ * @return uint64_t (micro second)
+ */
 uint64_t getTimePass(struct timespec *start) {
     struct timespec end;
 #ifdef _WIN32
@@ -22,22 +27,31 @@ uint64_t getTimePass(struct timespec *start) {
 
     return timePass;
 }
+/**
+ * @brief Get time interval
+ * @param a
+ * @param b
+ * @return uint64_t (micro second)
+ */
+static inline uint64_t timeInterval(struct timespec *a, struct timespec *b) {
+    return (b->tv_sec - a->tv_sec) * 1000000 + (b->tv_nsec - a->tv_nsec) / 1000;
+}
 
 void tickUpdate(void (*fpsUpdate)(float fps, float tick)) {
     static struct timespec tickStart = {0}, tickTime = {0};
-    static int countAvg = 0;
+    static int tickCount = 0;
 
     deltaTimeTick = (getTimePass(&tickTime) / 1000000.0f);
-    countAvg++;
+    ++tickCount;
+    
+    float time;
     // Do periodic frame rate calculation
-    if (countAvg == FPS_COUNTER_AVG) {
-        float time = getTimePass(&tickStart) / 1000000.0f;
-        float fps = (float)fpsCounter_frameCount / time;
-        float tick = (float)FPS_COUNTER_AVG / time;
-        if (fpsUpdate)
-            fpsUpdate(fps, tick);
+    if (fpsUpdate && (time = timeInterval(&tickStart, &tickTime)) >= FPS_UPDATE_INTERVAL) {
+        tickStart = tickTime;
+        float timeSec = time / 1000000.0f;
+        fpsUpdate(fpsCounter_frameCount / timeSec, tickCount / timeSec);
         fpsCounter_frameCount = 0;
-        countAvg = 0;
+        tickCount = 0;
     }
 }
 
@@ -47,7 +61,7 @@ void fpsCounterInit() {
 }
 
 void frameUpdate() {
-    fpsCounter_frameCount++;
+    ++fpsCounter_frameCount;
 }
 
 #endif

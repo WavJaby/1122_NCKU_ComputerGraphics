@@ -11,8 +11,8 @@ typedef struct _STriangle {
 } STriangle;
 
 typedef struct _STrianglesInfo {
-    GLVector3f boundMax, boundMin;
-    GLVector3f center;
+    Vector3f boundMax, boundMin;
+    Vector3f center;
     STriangle* triangles;
     uint32_t trianglesCount;
     float maxSize;
@@ -22,11 +22,14 @@ void calculateTriangleInfo(STriangle* triangles, uint32_t trianglesCount, STrian
     info->trianglesCount = trianglesCount;
     info->triangles = triangles;
     if (trianglesCount == 0) {
-        info->boundMin = info->boundMax = info->center = (GLVector3f){0, 0, 0};
+        vec3fZero(info->boundMin);
+        vec3fZero(info->boundMax);
+        vec3fZero(info->center);
         return;
     }
     float min[3], max[3];
-    info->boundMin = info->boundMax = (GLVector3f){0, 0, 0};
+    vec3fZero(info->boundMin);
+    vec3fZero(info->boundMax);
 
     for (uint32_t i = 0; i < trianglesCount; i++) {
         if (i == 0) {
@@ -50,17 +53,17 @@ void calculateTriangleInfo(STriangle* triangles, uint32_t trianglesCount, STrian
                 max[axis] = triangles[i].c[axis];
         }
     }
-    info->center.x = (min[0] + max[0]) / 2.0f;
-    info->center.y = (min[1] + max[1]) / 2.0f;
-    info->center.z = (min[2] + max[2]) / 2.0f;
+    vx(info->center) = (min[0] + max[0]) / 2.0f;
+    vy(info->center) = (min[1] + max[1]) / 2.0f;
+    vz(info->center) = (min[2] + max[2]) / 2.0f;
 
-    info->boundMin.x = min[0];
-    info->boundMin.y = min[1];
-    info->boundMin.z = min[2];
+    vx(info->boundMin) = min[0];
+    vy(info->boundMin) = min[1];
+    vz(info->boundMin) = min[2];
 
-    info->boundMax.x = max[0];
-    info->boundMax.y = max[1];
-    info->boundMax.z = max[2];
+    vx(info->boundMax) = max[0];
+    vy(info->boundMax) = max[1];
+    vz(info->boundMax) = max[2];
 
     float wy = max[1] - min[1], wz = max[2] - min[2];
     info->maxSize = max[0] - min[0];
@@ -227,7 +230,7 @@ void loadStlBinary(FILE* file, STrianglesInfo* trianglesInfo) {
         triList[i].c[1] = *(float*)(tmpBuff + 40);
         triList[i].c[2] = *(float*)(tmpBuff + 44);
 
-        uint16_t attrCount = *(uint16_t*)(tmpBuff + 48);
+        // uint16_t attrCount = *(uint16_t*)(tmpBuff + 48);
     }
 
     fclose(file);

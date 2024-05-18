@@ -1,7 +1,7 @@
 
-# 1122 NCKU COMPUTER GRAPHICS HW2
+# 1122 NCKU COMPUTER GRAPHICS HW3
 
-For more information, see <https://github.com/WavJaby/1122_NCKU_ComputerGraphics/tree/main/hw2>
+For more information, see <https://github.com/WavJaby/1122_NCKU_ComputerGraphics/tree/main/hw3>
 
 ## Basic controls
 
@@ -17,6 +17,7 @@ For more information, see <https://github.com/WavJaby/1122_NCKU_ComputerGraphics
 - w/s: rotate j2 axis (homework require)
 - e/d: rotate j3 axis (homework require)
 - r/f: rotate j4 axis (homework require)
+- t/g: grab/release object (homework require)
 
 Double press space to toggle fly mode
 

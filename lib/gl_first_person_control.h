@@ -16,19 +16,20 @@
 float mouseSensitivity = 1.5;
 float flySpeed = 7, flyAcc = 40;
 float moveSpeed = 3, runningSpeed = 5, moveAcc = 50;
-
 float jumpVelocity = 4;
+
 float gravityY = -9.81;
 float friction = 0.8, frictionAir = 0.2;
+
 bool flying = true, running = false, spaceKeyPress = false;
 bool firstPersonPause = false;
 struct timespec spaceKeyInterval;
 
 int windowCenterX = -1, windowCenterY = -1;
-GLVector3f cameraPos = {0.0, 0.0, 0.0};
-GLVector3f cameraVelocity = {0.0, 0.0, 0.0};
-GLVector3f cameraAngle = {0.0, 0.0, 0.0};
-GLVector3f cameraVec = {0.0, 0.0, 0.0};
+Vector3f cameraPos = {0.0, 0.0, 0.0};
+Vector3f cameraVelocity = {0.0, 0.0, 0.0};
+Vector3f cameraAngle = {0.0, 0.0, 0.0};
+Vector3f cameraVec = {0.0, 0.0, 0.0};
 
 int lastMouseX = -1, lastMouseY = -1;
 
@@ -55,16 +56,16 @@ void firstPersonMouse(int x, int y) {
     int deltaY = y - lastMouseY;
     lastMouseX = x;
     lastMouseY = y;
-    cameraAngle.x += (float)-deltaY * mouseSensitivity * deltaTimeTick;
-    if (cameraAngle.x > 89.9999)
-        cameraAngle.x = 89.9999;
-    else if (cameraAngle.x < -89.9999)
-        cameraAngle.x = -89.9999;
-    cameraAngle.y += (float)deltaX * mouseSensitivity * deltaTimeTick;
-    if (cameraAngle.x > 360)
-        cameraAngle.x -= 360;
-    else if (cameraAngle.x < -360)
-        cameraAngle.x += 360;
+    vx(cameraAngle) += (float)-deltaY * mouseSensitivity * deltaTimeTick;
+    if (vx(cameraAngle) > 89.9999)
+        vx(cameraAngle) = 89.9999;
+    else if (vx(cameraAngle) < -89.9999)
+        vx(cameraAngle) = -89.9999;
+    vy(cameraAngle) += (float)deltaX * mouseSensitivity * deltaTimeTick;
+    if (vx(cameraAngle) > 360)
+        vx(cameraAngle) -= 360;
+    else if (vx(cameraAngle) < -360)
+        vx(cameraAngle) += 360;
 
     if (abs(lastMouseX - windowCenterX) > 5 || abs(lastMouseY - windowCenterY) > 5) {
         firstPersonMouseReset();
@@ -80,102 +81,103 @@ void firstPersonInit() {
 void firstPersonWindowSizeUpdate(int width, int height) {
     windowCenterX = width >> 1;
     windowCenterY = height >> 1;
-    printf("WindowSize: %dx%d\n", width, height);
 }
 
 void calculateCameraMovement() {
-    double cameraAngley = cameraAngle.y * M_Ang2Rad;
-    double cameraAnglex = cameraAngle.x * M_Ang2Rad;
-    cameraVec.x = cos(cameraAngley) * cos(cameraAnglex);
-    cameraVec.y = sin(cameraAnglex);
-    cameraVec.z = sin(cameraAngley) * cos(cameraAnglex);
+    double cameraAngley = vy(cameraAngle) * M_Ang2Rad;
+    double cameraAnglex = vx(cameraAngle) * M_Ang2Rad;
+    vx(cameraVec) = cos(cameraAngley) * cos(cameraAnglex);
+    vy(cameraVec) = sin(cameraAnglex);
+    vz(cameraVec) = sin(cameraAngley) * cos(cameraAnglex);
 
     if (firstPersonPause) return;
 
     // XZ friction
-    GLVector3f v = cameraVelocity;
-    v.y = 0;
-    float speed = GLVector3Length(v);
+    Vector3f v = vec3Clone(cameraVelocity);
+    vy(v) = 0;
+    float speed = vec3fLength(v);
     if (speed > 0) {
         float n = 1 * -gravityY;
         float f = (flying ? frictionAir : friction) * n * deltaTimeTick;
 
-        GLVector3f frictionAcc = (GLVector3f){0, 0, 0};
-        GLVector3MinusTo(v, &frictionAcc);
+        Vector3f frictionAcc = {0, 0, 0};
+        vec3fMinus(v, frictionAcc);
         if (speed < f) {
-            cameraVelocity.x = 0;
-            cameraVelocity.z = 0;
+            vx(cameraVelocity) = 0;
+            vz(cameraVelocity) = 0;
         } else {
-            GLVector3ScaleTo(f, &frictionAcc);
-            GLVector3AddTo(frictionAcc, &cameraVelocity);
+            vec3fScale(f, frictionAcc);
+            vec3fAdd(frictionAcc, cameraVelocity);
         }
     }
 
     // XZ movement
     bool anyKey = false;
-    GLVector3f moveAccXZ = {0, 0, 0};
+    Vector3f moveAccXZ = {0, 0, 0};
     if (keys[GLUT_KEY_UP]) {
-        GLVector3AddTo((GLVector3f){cameraVec.x, 0, cameraVec.z}, &moveAccXZ);
+        vec3fAdd((Vector3f){vx(cameraVec), 0, vz(cameraVec)}, moveAccXZ);
         anyKey = true;
     }
     if (keys[GLUT_KEY_DOWN]) {
-        GLVector3AddTo((GLVector3f){-cameraVec.x, 0, -cameraVec.z}, &moveAccXZ);
+        vec3fAdd((Vector3f){-vx(cameraVec), 0, -vz(cameraVec)}, moveAccXZ);
         anyKey = true;
     }
     if (keys[GLUT_KEY_RIGHT]) {
-        GLVector3f right = GLVector3Cross((GLVector3f){cameraVec.x, 0, cameraVec.z}, (GLVector3f){0, 1, 0});
-        GLVector3AddTo(right, &moveAccXZ);
+        Vector3f right;
+        vec3fCross((Vector3f){vx(cameraVec), 0, vz(cameraVec)}, (Vector3f){0, 1, 0}, right);
+        vec3fAdd(right, moveAccXZ);
         anyKey = true;
     }
     if (keys[GLUT_KEY_LEFT]) {
-        GLVector3f right = GLVector3Cross((GLVector3f){cameraVec.x, 0, cameraVec.z}, (GLVector3f){0, -1, 0});
-        GLVector3AddTo(right, &moveAccXZ);
+        Vector3f left;
+        vec3fCross((Vector3f){vx(cameraVec), 0, vz(cameraVec)}, (Vector3f){0, -1, 0}, left);
+        vec3fAdd(left, moveAccXZ);
         anyKey = true;
     }
     if (anyKey) {
-        GLVector3NormalizeTo(&moveAccXZ);
-        GLVector3ScaleTo((flying ? flyAcc : moveAcc) * deltaTimeTick, &moveAccXZ);
-        GLVector3AddTo(moveAccXZ, &cameraVelocity);
+        vec3fNormalize(moveAccXZ);
+        vec3fScale((flying ? flyAcc : moveAcc) * deltaTimeTick, moveAccXZ);
+        vec3fAdd(moveAccXZ, cameraVelocity);
         // Limit speed
-        v = cameraVelocity;
-        v.y = 0;
-        float speed = GLVector3Length(v);
+        vec3fSet(v, cameraVelocity);
+        vy(v) = 0;
+        float speed = vec3fLength(v);
         float maxSpeed = (flying ? flySpeed : (running ? runningSpeed : moveSpeed));
         if (speed > maxSpeed) {
-            GLVector3NormalizeTo(&v);
-            GLVector3ScaleTo(maxSpeed, &v);
-            cameraVelocity.x = v.x;
-            cameraVelocity.z = v.z;
+            vec3fNormalize(v);
+            vec3fScale(maxSpeed, v);
+            vx(cameraVelocity) = vx(v);
+            vz(cameraVelocity) = vz(v);
         }
-        // printf("%f\n",GLVector3Length(v));
+        // printf("%f\n",vec3fLength(v));
     }
 
     // Y movement
     if (flying) {
         anyKey = false;
         if (keys[' '] && !keys[GLUT_KEY_LEFTSHIFT]) {
-            cameraVelocity.y = moveSpeed;
+            vy(cameraVelocity) = moveSpeed;
             anyKey = true;
         }
         if (keys[GLUT_KEY_LEFTSHIFT] && !keys[' ']) {
-            cameraVelocity.y = -moveSpeed;
+            vy(cameraVelocity) = -moveSpeed;
             anyKey = true;
         }
         if (!anyKey)
-            cameraVelocity.y = 0;
+            vy(cameraVelocity) = 0;
     } else {
-        cameraVelocity.y += gravityY * deltaTimeTick;
-        if (keys[' '] && cameraPos.y < 2.0001)
-            cameraVelocity.y = jumpVelocity;
+        vy(cameraVelocity) += gravityY * deltaTimeTick;
+        if (keys[' '] && vy(cameraPos) < 2.0001)
+            vy(cameraVelocity) = jumpVelocity;
         running = keys[GLUT_KEY_LEFTSHIFT];
     }
-    v = cameraVelocity;
-    GLVector3ScaleTo(deltaTimeTick, &v);
-    GLVector3AddTo(v, &cameraPos);
+    vec3fSet(v, cameraVelocity);
+    vec3fScale(deltaTimeTick, v);
+    vec3fAdd(v, cameraPos);
     // Ground
-    if (cameraPos.y < 2) {
-        cameraPos.y = 2;
-        cameraVelocity.y = 0;
+    if (vy(cameraPos) < 2) {
+        vy(cameraPos) = 2;
+        vy(cameraVelocity) = 0;
         if (flying)
             flying = false;
     }
@@ -194,14 +196,14 @@ void calculateCameraMovement() {
 
 void calculateCameraMatrix() {
     glLoadIdentity();
-    // glTranslatef(cameraPos.x, cameraPos.y, cameraPos.z);
-    // glRotatef(cameraAngle.y, 0, 1, 0);
-    // glRotatef(cameraAngle.x, 0, 1, 0);
-    gluLookAt(cameraPos.x, cameraPos.y, cameraPos.z,
-              cameraPos.x + cameraVec.x, cameraPos.y + cameraVec.y, cameraPos.z + cameraVec.z,
+    // glTranslatef(vx(cameraPos), vy(cameraPos), vz(cameraPos));
+    // glRotatef(vy(cameraAngle), 0, 1, 0);
+    // glRotatef(vx(cameraAngle), 0, 1, 0);
+    gluLookAt(vx(cameraPos), vy(cameraPos), vz(cameraPos),
+              vx(cameraPos) + vx(cameraVec), vy(cameraPos) + vy(cameraVec), vz(cameraPos) + vz(cameraVec),
               0, 1, 0);  // up direction
 
-    // printf("%f, %f, %f\n", cameraVec.x, cameraVec.y, cameraVec.z);
+    // printf("%f, %f, %f\n", vx(cameraVec), vy(cameraVec), vz(cameraVec));
 }
 
 #endif

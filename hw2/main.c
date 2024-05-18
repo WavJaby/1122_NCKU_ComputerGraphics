@@ -21,7 +21,7 @@
 
 #define FPS 120
 
-char title[32] = "F74114760 hw1";
+char title[32] = "F74114760 hw2";
 const int tickMills = 1000 / 60;
 int refreshMills = 1000 / FPS;  // refresh interval in milliseconds
 
@@ -112,15 +112,14 @@ void initGL() {
     glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
     glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
 
-    GLuint dispId;
     GameObject* block = newGameObjectDefault(loadStlModel("../model/block.stl"));
     GameObject* cog = newGameObjectDefault(loadStlModel("../model/cog.stl"));
-    GameObject* base = newGameObject((GLVector3f){0, 0, 0}, (GLVector3f){0, 70, 0}, (GLVector3f){0, 0, 0}, loadStlModel("../model/base.stl"));
-    GameObject* lowerBody = newGameObject((GLVector3f){0, 14 / 16.f, 0}, (GLVector3f){-90, 0, 0}, (GLVector3f){0, 0, 0}, loadStlModel("../model/lower_body.stl"));
-    GameObject* upperBody = newGameObject((GLVector3f){0, 0, 1}, (GLVector3f){90, 0, 0}, (GLVector3f){0, 0, 0}, loadStlModel("../model/upper_body.stl"));
-    GameObject* clawBase = newGameObject((GLVector3f){0, 0, 15 / 16.f}, (GLVector3f){0, 0, 0}, (GLVector3f){0, 0, 0}, loadStlModel("../model/claw_base.stl"));
-    GameObject* lowerGrip = newGameObject((GLVector3f){0, -1.5 / 16.f, 0}, (GLVector3f){0, 0, 0}, (GLVector3f){0, 0, 0}, loadStlModel("../model/lower_claw_grip.stl"));
-    GameObject* upperGrip = newGameObject((GLVector3f){0, 1.5 / 16.f, 0}, (GLVector3f){0, 0, 0}, (GLVector3f){0, 0, 0}, loadStlModel("../model/upper_claw_grip.stl"));
+    GameObject* base = newGameObjectPosRot((Vector3f){0, 0, 0}, (Vector3f){0, 70, 0}, loadStlModel("../model/base.stl"));
+    GameObject* lowerBody = newGameObjectPosRot((Vector3f){0, 14 / 16.f, 0}, (Vector3f){-90, 0, 0}, loadStlModel("../model/lower_body.stl"));
+    GameObject* upperBody = newGameObjectPosRot((Vector3f){0, 0, 1}, (Vector3f){90, 0, 0}, loadStlModel("../model/upper_body.stl"));
+    GameObject* clawBase = newGameObjectPosRot((Vector3f){0, 0, 15 / 16.f}, (Vector3f){0, 0, 0}, loadStlModel("../model/claw_base.stl"));
+    GameObject* lowerGrip = newGameObjectPosRot((Vector3f){0, -1.5 / 16.f, 0}, (Vector3f){0, 0, 0}, loadStlModel("../model/lower_claw_grip.stl"));
+    GameObject* upperGrip = newGameObjectPosRot((Vector3f){0, 1.5 / 16.f, 0}, (Vector3f){0, 0, 0}, loadStlModel("../model/upper_claw_grip.stl"));
 
     gameobjectAddChild(block, cog);
     gameobjectAddChild(block, base);
@@ -137,24 +136,9 @@ void initGL() {
     // Text texture init
     glTextInit();
 
-    cameraPos = (GLVector3f){0, 2, -3};
-    cameraAngle = (GLVector3f){0, 90, 0};
-}
-
-void renderObject(GameObject* gameObject) {
-    // Render GameObject
-    glPushMatrix();
-    if (gameObject->modelListId) {
-        glTranslatef(gameObject->position.x, gameObject->position.y, gameObject->position.z);
-        glRotatef(gameObject->rotation.y, 0, 1, 0);
-        glRotatef(gameObject->rotation.x, 1, 0, 0);
-        glRotatef(gameObject->rotation.z, 0, 0, 1);
-        glCallList(gameObject->modelListId);
-    }
-    listT_foreach(&gameObject->childs, GameObject*, i, {
-        renderObject(i);
-    });
-    glPopMatrix();
+    vec3fSet(cameraPos, (Vector3f){0, 2, -5});
+    vec3fSet(cameraAngle, (Vector3f){0, 90, 0});
+    printf("Init done\n");
 }
 
 void display() {
@@ -171,7 +155,7 @@ void display() {
 
     for (size_t i = 0; i < 10; i++) {
         if (!gameObjects[i]) break;
-        renderObject(gameObjects[i]);
+        renderGameObject(gameObjects[i]);
     }
 
     glRotatef(-90, 1, 0, 0);
@@ -198,11 +182,11 @@ void display() {
         glDrawString(fpsInfo, strlen(fpsInfo), 5, windowHeight - 20, 16);
         char cameraInfo[128];
         sprintf(cameraInfo, "Camera pos: (%.2f, %.2f, %.2f), angle: (%.2f, %.2f)",
-                cameraPos.x, cameraPos.y, cameraPos.z,
-                cameraAngle.x, cameraAngle.y);
+                vx(cameraPos), vy(cameraPos), vz(cameraPos),
+                vx(cameraAngle), vy(cameraAngle));
         glDrawString(cameraInfo, strlen(cameraInfo), 5, windowHeight - 40, 16);
         sprintf(cameraInfo, "Velocity: (%.2f, %.2f, %.2f)",
-                cameraVelocity.x, cameraVelocity.y, cameraVelocity.z);
+                vx(cameraVelocity), vy(cameraVelocity), vz(cameraVelocity));
         glDrawString(cameraInfo, strlen(cameraInfo), 5, windowHeight - 60, 16);
         glDrawString("Press F3 to toggle debug text", 29, 5, windowHeight - 80, 16);
     }
@@ -228,37 +212,37 @@ void display() {
 
 void updateGame() {
     GameObject* cog = listT_get(&gameObjects[0]->childs, GameObject*, 0);
-    cog->rotation.y += 180 * deltaTimeTick;
-    if (cog->rotation.y > 360) cog->rotation.y -= 360;
-    if (cog->rotation.y < 0) cog->rotation.y += 360;
+    vy(cog->rotation) += 180 * deltaTimeTick;
+    if (vy(cog->rotation) > 360) vy(cog->rotation) -= 360;
+    if (vy(cog->rotation) < 0) vy(cog->rotation) += 360;
 
     GameObject* base = listT_get(&gameObjects[0]->childs, GameObject*, 1);
     GameObject* lowerBody = listT_get(&base->childs, GameObject*, 0);
     GameObject* upperBody = listT_get(&lowerBody->childs, GameObject*, 0);
     GameObject* clawBase = listT_get(&upperBody->childs, GameObject*, 0);
-    if (keys['Q']) base->rotation.y += 180 * deltaTimeTick;
-    if (keys['A']) base->rotation.y -= 180 * deltaTimeTick;
+    if (keys['Q']) vy(base->rotation) += 180 * deltaTimeTick;
+    if (keys['A']) vy(base->rotation) -= 180 * deltaTimeTick;
 
-    if (keys['W']) lowerBody->rotation.x += 180 * deltaTimeTick;
-    if (keys['S']) lowerBody->rotation.x -= 180 * deltaTimeTick;
-    if (lowerBody->rotation.x > 0) lowerBody->rotation.x = 0;
-    if (lowerBody->rotation.x < -180) lowerBody->rotation.x = -180;
-    float angle = lowerBody->rotation.x + 90;
+    if (keys['W']) vx(lowerBody->rotation) += 180 * deltaTimeTick;
+    if (keys['S']) vx(lowerBody->rotation) -= 180 * deltaTimeTick;
+    if (vx(lowerBody->rotation) > 0) vx(lowerBody->rotation) = 0;
+    if (vx(lowerBody->rotation) < -180) vx(lowerBody->rotation) = -180;
+    float angle = vx(lowerBody->rotation) + 90;
 
-    if (keys['E']) upperBody->rotation.x += 180 * deltaTimeTick;
-    if (keys['D']) upperBody->rotation.x -= 180 * deltaTimeTick;
+    if (keys['E']) vx(upperBody->rotation) += 180 * deltaTimeTick;
+    if (keys['D']) vx(upperBody->rotation) -= 180 * deltaTimeTick;
     if (angle > 0) {
-        if (upperBody->rotation.x > 150 - angle) upperBody->rotation.x = 150 - angle;
-        if (upperBody->rotation.x < -150) upperBody->rotation.x = -150;
+        if (vx(upperBody->rotation) > 150 - angle) vx(upperBody->rotation) = 150 - angle;
+        if (vx(upperBody->rotation) < -150) vx(upperBody->rotation) = -150;
     } else {
-        if (upperBody->rotation.x > 150) upperBody->rotation.x = 150;
-        if (upperBody->rotation.x < -150 - angle) upperBody->rotation.x = -150 - angle;
+        if (vx(upperBody->rotation) > 150) vx(upperBody->rotation) = 150;
+        if (vx(upperBody->rotation) < -150 - angle) vx(upperBody->rotation) = -150 - angle;
     }
 
-    if (keys['R']) clawBase->rotation.x += 180 * deltaTimeTick;
-    if (keys['F']) clawBase->rotation.x -= 180 * deltaTimeTick;
-    if (clawBase->rotation.x > 100) clawBase->rotation.x = 100;
-    if (clawBase->rotation.x < -100) clawBase->rotation.x = -100;
+    if (keys['R']) vx(clawBase->rotation) += 180 * deltaTimeTick;
+    if (keys['F']) vx(clawBase->rotation) -= 180 * deltaTimeTick;
+    if (vx(clawBase->rotation) > 100) vx(clawBase->rotation) = 100;
+    if (vx(clawBase->rotation) < -100) vx(clawBase->rotation) = -100;
 }
 
 void update() {
@@ -297,7 +281,6 @@ void reshape(GLsizei width, GLsizei height) {
     gluPerspective(45.0f, windowAspect, 0.1f, 1000.0f);
 }
 
-struct timespec drawTime = {0};
 bool glutStoped = false;
 void frameTimer(int value) {
     if (keys[GLUT_KEY_ESC]) {

@@ -2,10 +2,6 @@
 /.vscode/settings.json
 /*/build/
 /*/lib/
-/freeglut/
-/freetype/
-/bin/
-/util3d/
-/openGLES/
+/external_lib/
 *.exe
 *.out

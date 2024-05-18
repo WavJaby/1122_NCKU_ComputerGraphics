@@ -92,7 +92,7 @@ void glTextInit() {
         uint32_t texture;
         glGenTextures(1, &texture);
         glBindTexture(GL_TEXTURE_2D, texture);
-        uint32_t* rgba_data = (uint32_t*)malloc(glyph->bitmap.width * glyph->bitmap.rows * 4);
+        uint32_t* rgba_data = (uint32_t*)malloc(glyph->bitmap.width * glyph->bitmap.rows * sizeof(uint32_t));
         for (int i = 0; i < glyph->bitmap.width * glyph->bitmap.rows; i++) {
             // if (!glyph->bitmap.buffer[i])
             //     rgba_data[i] = 0xFF0000FF;
@@ -112,16 +112,6 @@ void glTextInit() {
             GL_RGBA,
             GL_UNSIGNED_BYTE,
             rgba_data);
-        // glTexImage2D(
-        //     GL_TEXTURE_2D,
-        //     0,
-        //     GL_RED,
-        //     glyph->bitmap.width,
-        //     glyph->bitmap.rows,
-        //     0,
-        //     GL_RED,
-        //     GL_UNSIGNED_BYTE,
-        //     glyph->bitmap.buffer);
         free(rgba_data);
 
         // set texture options
@@ -138,6 +128,7 @@ void glTextInit() {
         glChars[n].advance = glyph->advance.x;
         glChars[n].texId = texture;
     }
+
 
     FT_Done_Face(face);
     FT_Done_FreeType(library);
