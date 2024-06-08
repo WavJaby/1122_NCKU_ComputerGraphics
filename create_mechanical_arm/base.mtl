@@ -1,0 +1,8 @@
+# Made in Blockbench 4.9.2
+newmtl m_b8283052-64a6-5815-9f3e-7155fffeb310
+map_Kd mechanical_arm.png
+newmtl m_83937965-1c0f-1fbf-aa84-89e62b53e607
+map_Kd brass_block.png
+newmtl m_4b43c7ac-4a09-6fb7-c3f3-8aedb3829f72
+map_Kd elevator_pulley.png
+newmtl none
