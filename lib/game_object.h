@@ -59,30 +59,30 @@ void renderGameObject(GameObject* gameObject, Matrix44f parentMat) {
     // Render GameObject
     glPushMatrix();
 
+    glTranslatef(vx(gameObject->position), vy(gameObject->position), vz(gameObject->position));
+    glRotatef(vx(gameObject->rotation), 1, 0, 0);
+    glRotatef(vy(gameObject->rotation), 0, 1, 0);
+    glRotatef(vz(gameObject->rotation), 0, 0, 1);
     Matrix44f thisMatrix = identity;
-    if (gameObject->modelListId) {
-        glTranslatef(vx(gameObject->position), vy(gameObject->position), vz(gameObject->position));
-        glRotatef(vx(gameObject->rotation), 1, 0, 0);
-        glRotatef(vy(gameObject->rotation), 0, 1, 0);
-        glRotatef(vz(gameObject->rotation), 0, 0, 1);
-        // wUpdate matrix
-        if (parentMat) {
-            Matrix44f cache = identity, cache1 ;
-            mat44fTranslate(thisMatrix, gameObject->position);
-            mat44fMultiply(parentMat, thisMatrix, cache);
+    // wUpdate matrix
+    if (parentMat) {
+        Matrix44f cache = identity;
+        mat44fTranslate(cache, gameObject->position);
+        mat44fMultiply(parentMat, cache, thisMatrix);
 
-            mat44fRotationX(thisMatrix, vx(gameObject->rotation) * Deg2Rad);
-            mat44fMultiply(cache, thisMatrix, cache1);
-            mat44fRotationY(thisMatrix, vy(gameObject->rotation) * Deg2Rad);
-            mat44fMultiply(cache1, thisMatrix, cache);
-            mat44fRotationZ(cache1, vz(gameObject->rotation) * Deg2Rad);
-            mat44fMultiply(cache, cache1, thisMatrix);
-            mat44fGetPosition(thisMatrix, gameObject->globalPosition);
-            mat44fGetEulerAngles(thisMatrix, gameObject->globalRotation);
-            // printf(mat44PrintFmt("%.2f") "\n", mat44Print(parentMat));
-        }
-        glCallList(gameObject->modelListId);
+        mat44fRotationX(cache, vx(gameObject->rotation) * Deg2Rad);
+        mat44fMultiply(thisMatrix, cache, thisMatrix);
+        mat44fRotationY(cache, vy(gameObject->rotation) * Deg2Rad);
+        mat44fMultiply(thisMatrix, cache, thisMatrix);
+        mat44fRotationZ(cache, vz(gameObject->rotation) * Deg2Rad);
+        mat44fMultiply(thisMatrix, cache, thisMatrix);
+        mat44fGetPosition(thisMatrix, gameObject->globalPosition);
+        mat44fGetEulerAngles(thisMatrix, gameObject->globalRotation);
+        // printf(mat44PrintFmt("%.2f") "\n", mat44Print(parentMat));
     }
+
+    if (gameObject->modelListId)
+        glCallList(gameObject->modelListId);
     listT_foreach(&gameObject->childs, GameObject*, i, {
         renderGameObject(i, parentMat ? thisMatrix : NULL);
     });

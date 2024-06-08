@@ -155,7 +155,7 @@ void display() {
 
     for (size_t i = 0; i < 10; i++) {
         if (!gameObjects[i]) break;
-        renderGameObject(gameObjects[i]);
+        renderGameObject(gameObjects[i], (Matrix44f)identity);
     }
 
     glRotatef(-90, 1, 0, 0);

@@ -96,9 +96,9 @@ typedef float Matrix44f[16];  // 4 X 4 matrix
       0.0f, 0.0f, 1.0f, 0.0f, \
       0.0f, 0.0f, 0.0f, 1.0f }
 
-#define A(row, col) a[(col << 2) + row]
-#define B(row, col) b[(col << 2) + row]
-#define P(row, col) product[(col << 2) + row]
+#define A(x, y) a[(y << 2) + x]
+#define B(x, y) b[(y << 2) + x]
+#define P(x, y) product[(y << 2) + x]
 
 // Multiply two 4x4 matricies
 void mat44fMultiply(const Matrix44f a, const Matrix44f b, Matrix44f product) {

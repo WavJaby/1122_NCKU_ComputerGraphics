@@ -30,7 +30,7 @@ int refreshMills = 1000 / FPS;  // refresh interval in milliseconds
 int windowWidth, windowHeight;
 float windowAspect;
 char fpsInfo[40], windowInfo[32];
-bool debugText = true, welcome = false;
+bool debugText = true, welcome = true;
 GLuint xzGridList, depthMap, depthMapFBO;
 GLfloat factor = 1.0f;  // for polygon offset
 
@@ -460,7 +460,7 @@ void updateGame() {
     mat44fMultiply(m, cache, m);
     mat44fTranslate(cache, (Vector3f){0, 0, 0.5});
     mat44fMultiply(m, cache, m);
-    Vector3f pos, rot;
+    Vector3f pos;
     mat44fGetPosition(m, pos);
     // Grab
     GameObject* ball = gameObjects[2];
@@ -487,9 +487,12 @@ void update() {
     userInputInitUpdate();
     calculateCameraMovement();
 
-    if (welcome && keysOnPress[GLUT_KEY_ENTER]) {
-        welcome = false;
-        firstPersonPause = false;
+    if (welcome) {
+        firstPersonPause = true;
+        if (keysOnPress[GLUT_KEY_ENTER]) {
+            welcome = false;
+            firstPersonPause = false;
+        }
     }
     if (!welcome) {
         updateGame();
