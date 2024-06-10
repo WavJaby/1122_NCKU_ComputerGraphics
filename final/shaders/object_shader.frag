@@ -1,7 +1,7 @@
-#version 330 core
-in vec3 fNormal;
+#version 330
 in vec3 fPos;
 in vec2 fTexCoords;
+in vec3 fNormal;
 
 #define MAX_POINT_LIGHTS 100
 
@@ -87,11 +87,11 @@ vec4 CalcDirectionalLight(vec3 normal) {
 
 vec4 CalcPointLight(int index, vec3 normal) {
 	vec3 lightDirection = fPos - pointLights[index].localPos;
-	float distance = length(lightDirection);
+	float dist = length(lightDirection);
 	lightDirection = normalize(lightDirection);
 	float attenuation = 1 / (pointLights[index].atten.constant +
-	pointLights[index].atten.linear * distance +
-	pointLights[index].atten.exp * distance * distance);
+	pointLights[index].atten.linear * dist +
+	pointLights[index].atten.exp * dist * dist);
 
 	vec4 color = CalcLightInternal(pointLights[index].base, lightDirection, normal);
 	color *= attenuation;
