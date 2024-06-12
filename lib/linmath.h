@@ -234,9 +234,6 @@ LINMATH_H_FUNC void mat4x4_rotate(mat4x4 R, mat4x4 const M, float x, float y, fl
         mat4x4_dup(R, M);
     }
 }
-LINMATH_H_FUNC void mat4x4_rotate_create(mat4x4 R, float x, float y, float z, float angle) {
-    mat4x4_rotate(R, mat4x4_identity, x, y, z, angle);
-}
 LINMATH_H_FUNC void mat4x4_rotate_X(mat4x4 Q, mat4x4 const M, float angle) {
     float s = sinf(angle);
     float c = cosf(angle);
@@ -266,6 +263,18 @@ LINMATH_H_FUNC void mat4x4_rotate_Z(mat4x4 Q, mat4x4 const M, float angle) {
         {0.f, 0.f, 1.f, 0.f},
         {0.f, 0.f, 0.f, 1.f}};
     mat4x4_mul(Q, M, R);
+}
+LINMATH_H_FUNC void mat4x4_rotate_create(mat4x4 R, float x, float y, float z, float angle) {
+    mat4x4_rotate(R, mat4x4_identity, x, y, z, angle);
+}
+LINMATH_H_FUNC void mat4x4_rotate_create_X(mat4x4 R, float angle) {
+    mat4x4_rotate_X(R, mat4x4_identity, angle);
+}
+LINMATH_H_FUNC void mat4x4_rotate_create_Y(mat4x4 R, float angle) {
+    mat4x4_rotate_Y(R, mat4x4_identity, angle);
+}
+LINMATH_H_FUNC void mat4x4_rotate_create_Z(mat4x4 R, float angle) {
+    mat4x4_rotate_Z(R, mat4x4_identity, angle);
 }
 LINMATH_H_FUNC void mat4x4_invert(mat4x4 T, mat4x4 const M) {
     float s[6];

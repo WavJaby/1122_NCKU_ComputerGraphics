@@ -14,8 +14,8 @@ void camera_windowSizeUpdate(int width, int height) {
 
 void camera_updateViewMatrix() {
     mat4x4 rotX, rotY, trans;
-    mat4x4_rotate_create(rotX, 1, 0, 0, cameraAngle[0] * (float)M_PI / 180.0f);
-    mat4x4_rotate_create(rotY, 0, 1, 0, cameraAngle[1] * (float)M_PI / 180.0f);
+    mat4x4_rotate_create_X(rotX, cameraAngle[0] * (float)M_PI / 180.0f);
+    mat4x4_rotate_create_Y(rotY, cameraAngle[1] * (float)M_PI / 180.0f);
     mat4x4_translate_create(trans, cameraPos[0], cameraPos[1], cameraPos[2]);
     mat4x4_mul(cameraViewMat, mat4x4_identity, rotX);
     mat4x4_mul(cameraViewMat, cameraViewMat, rotY);

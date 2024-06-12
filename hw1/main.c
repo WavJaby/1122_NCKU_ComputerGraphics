@@ -30,7 +30,7 @@ char fpsInfo[64];
 bool debugText = true, welcome = true;
 
 void fpsUpdate(float fps, float tick) {
-    sprintf(fpsInfo, "fps: %.2f, tick: %.2f, delta: %.6f", fps, tick, deltaTimeTick);
+    sprintf(fpsInfo, "fps: %.2f, tick: %.2f, delta: %.6f", fps, tick, deltaTimeUpdate);
     // printf("%s\n", cBuffer);
     // glutSetWindowTitle(cBuffer);
 }
@@ -195,9 +195,9 @@ void update() {
         return;
 
     if (keys['X'])
-        angle += 90 * deltaTimeTick;
+        angle += 90 * deltaTimeUpdate;
     if (keys['Z'])
-        angle -= 90 * deltaTimeTick;
+        angle -= 90 * deltaTimeUpdate;
     if (keysOnPress[GLUT_KEY_F3])
         debugText = !debugText;
 

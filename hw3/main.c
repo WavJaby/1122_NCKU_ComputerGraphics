@@ -417,7 +417,7 @@ void display() {
 bool grab = false;
 void updateGame() {
     GameObject* cog = listT_get(&gameObjects[1]->childs, GameObject*, 0);
-    vy(cog->rotation) += 180 * deltaTimeTick;
+    vy(cog->rotation) += 180 * deltaTimeUpdate;
     if (vy(cog->rotation) > 360) vy(cog->rotation) -= 360;
     if (vy(cog->rotation) < 0) vy(cog->rotation) += 360;
 
@@ -425,17 +425,17 @@ void updateGame() {
     GameObject* lowerBody = listT_get(&base->childs, GameObject*, 0);
     GameObject* upperBody = listT_get(&lowerBody->childs, GameObject*, 0);
     GameObject* clawBase = listT_get(&upperBody->childs, GameObject*, 0);
-    if (keys['Q']) vy(base->rotation) += 180 * deltaTimeTick;
-    if (keys['A']) vy(base->rotation) -= 180 * deltaTimeTick;
+    if (keys['Q']) vy(base->rotation) += 180 * deltaTimeUpdate;
+    if (keys['A']) vy(base->rotation) -= 180 * deltaTimeUpdate;
 
-    if (keys['W']) vx(lowerBody->rotation) += 180 * deltaTimeTick;
-    if (keys['S']) vx(lowerBody->rotation) -= 180 * deltaTimeTick;
+    if (keys['W']) vx(lowerBody->rotation) += 180 * deltaTimeUpdate;
+    if (keys['S']) vx(lowerBody->rotation) -= 180 * deltaTimeUpdate;
     if (vx(lowerBody->rotation) > 0) vx(lowerBody->rotation) = 0;
     if (vx(lowerBody->rotation) < -180) vx(lowerBody->rotation) = -180;
     float angle = (vx(lowerBody->rotation) + 90) * 1.4;
 
-    if (keys['E']) vx(upperBody->rotation) += 180 * deltaTimeTick;
-    if (keys['D']) vx(upperBody->rotation) -= 180 * deltaTimeTick;
+    if (keys['E']) vx(upperBody->rotation) += 180 * deltaTimeUpdate;
+    if (keys['D']) vx(upperBody->rotation) -= 180 * deltaTimeUpdate;
     if (angle > 0) {
         if (vx(upperBody->rotation) > 150 - angle) vx(upperBody->rotation) = 150 - angle;
         if (vx(upperBody->rotation) < -150) vx(upperBody->rotation) = -150;
@@ -444,8 +444,8 @@ void updateGame() {
         if (vx(upperBody->rotation) < -150 - angle) vx(upperBody->rotation) = -150 - angle;
     }
 
-    if (keys['R']) vx(clawBase->rotation) += 180 * deltaTimeTick;
-    if (keys['F']) vx(clawBase->rotation) -= 180 * deltaTimeTick;
+    if (keys['R']) vx(clawBase->rotation) += 180 * deltaTimeUpdate;
+    if (keys['F']) vx(clawBase->rotation) -= 180 * deltaTimeUpdate;
     if (vx(clawBase->rotation) > 100) vx(clawBase->rotation) = 100;
     if (vx(clawBase->rotation) < -100) vx(clawBase->rotation) = -100;
 
@@ -480,7 +480,7 @@ void updateGame() {
 }
 
 void fpsUpdate(float fps, float tick) {
-    sprintf(fpsInfo, "fps:%7.2f, tick: %.2f, d: %.5f", fps, tick, deltaTimeTick);
+    sprintf(fpsInfo, "fps:%7.2f, tick: %.2f, d: %.5f", fps, tick, deltaTimeUpdate);
 }
 
 void update() {

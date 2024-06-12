@@ -8,7 +8,7 @@
 #define FPS_UPDATE_INTERVAL 100000
 
 int fpsCounter_frameCount;
-float deltaTimeTick;
+float deltaTimeUpdate;
 
 /**
  * @brief Calculate time pass, and update timespec 
@@ -41,7 +41,7 @@ void tickUpdate(void (*fpsUpdate)(float fps, float tick)) {
     static struct timespec tickStart = {0}, tickTime = {0};
     static int tickCount = 0;
 
-    deltaTimeTick = (getTimePass(&tickTime) / 1000000.0f);
+    deltaTimeUpdate = (getTimePass(&tickTime) / 1000000.0f);
     ++tickCount;
     
     float time;
@@ -57,7 +57,7 @@ void tickUpdate(void (*fpsUpdate)(float fps, float tick)) {
 
 void fpsCounterInit() {
     tickUpdate(NULL);
-    deltaTimeTick = 0;
+    deltaTimeUpdate = 0;
 }
 
 void frameUpdate() {

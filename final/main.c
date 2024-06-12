@@ -40,7 +40,7 @@ void onCursorMove(GLFWwindow* window, double xpos, double ypos) {
     }
 
     cameraAngle[0] += (ypos - lastMouseY) * mouseSensitivity;
-    cameraAngle[1] += (xpos - lastMouseX) * mouseSensitivity;
+    cameraAngle[1] -= (xpos - lastMouseX) * mouseSensitivity;
 	if (cameraAngle[0] > 270)
         cameraAngle[0] = 270;
 	else if (cameraAngle[0] < 0)
@@ -199,7 +199,6 @@ int main(int argc, char* argv[]) {
 
     GLint viewPos = glGetUniformLocation(program, "viewPos");
 
-    GLint lightMask = glGetUniformLocation(program, "lightMask");
     GLint dirLight_direction = glGetUniformLocation(program, "dirLight.direction");
     GLint dirLight_color = glGetUniformLocation(program, "dirLight.base.color");
     GLint dirLight_ambient = glGetUniformLocation(program, "dirLight.base.ambientIntensity");
@@ -233,13 +232,13 @@ int main(int argc, char* argv[]) {
         glUniformMatrix4fv(uView, 1, GL_FALSE, (float*)cameraViewMat);
         glUniform3fv(viewPos, 1, cameraPos);
 
-        glUniform1ui(lightMask, 0b00000001);
         glUniform3f(dirLight_direction, 0, -1, 0);
         glUniform4f(dirLight_color, 1, 1, 1, 1);
         glUniform1f(dirLight_ambient, 0.1);
         glUniform1f(dirLight_diffuse, 0.6);
 
         glUniform4f(material_color, 1, 1, 1, 1);
+        glUniform1f(material_shininess, 1);
         glUniformMatrix4fv(uModel, 1, GL_FALSE, (float*)model);
         glBindVertexArray(mesh.vao);
         glDrawElements(GL_TRIANGLES, mesh.indicesCount, GL_UNSIGNED_INT, NULL);

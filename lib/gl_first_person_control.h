@@ -56,12 +56,12 @@ void firstPersonMouse(int x, int y) {
     int deltaY = y - lastMouseY;
     lastMouseX = x;
     lastMouseY = y;
-    vx(cameraAngle) += (float)-deltaY * mouseSensitivity * deltaTimeTick;
+    vx(cameraAngle) += (float)-deltaY * mouseSensitivity * deltaTimeUpdate;
     if (vx(cameraAngle) > 89.9999)
         vx(cameraAngle) = 89.9999;
     else if (vx(cameraAngle) < -89.9999)
         vx(cameraAngle) = -89.9999;
-    vy(cameraAngle) += (float)deltaX * mouseSensitivity * deltaTimeTick;
+    vy(cameraAngle) += (float)deltaX * mouseSensitivity * deltaTimeUpdate;
     if (vx(cameraAngle) > 360)
         vx(cameraAngle) -= 360;
     else if (vx(cameraAngle) < -360)
@@ -98,7 +98,7 @@ void calculateCameraMovement() {
     float speed = vec3fLength(v);
     if (speed > 0) {
         float n = 1 * -gravityY;
-        float f = (flying ? frictionAir : friction) * n * deltaTimeTick;
+        float f = (flying ? frictionAir : friction) * n * deltaTimeUpdate;
 
         Vector3f frictionAcc = {0, 0, 0};
         vec3fMinus(v, frictionAcc);
@@ -136,7 +136,7 @@ void calculateCameraMovement() {
     }
     if (anyKey) {
         vec3fNormalize(moveAccXZ);
-        vec3fScale((flying ? flyAcc : moveAcc) * deltaTimeTick, moveAccXZ);
+        vec3fScale((flying ? flyAcc : moveAcc) * deltaTimeUpdate, moveAccXZ);
         vec3fAdd(moveAccXZ, cameraVelocity);
         // Limit speed
         vec3fSet(v, cameraVelocity);
@@ -166,13 +166,13 @@ void calculateCameraMovement() {
         if (!anyKey)
             vy(cameraVelocity) = 0;
     } else {
-        vy(cameraVelocity) += gravityY * deltaTimeTick;
+        vy(cameraVelocity) += gravityY * deltaTimeUpdate;
         if (keys[' '] && vy(cameraPos) < 2.0001)
             vy(cameraVelocity) = jumpVelocity;
         running = keys[GLUT_KEY_LEFTSHIFT];
     }
     vec3fSet(v, cameraVelocity);
-    vec3fScale(deltaTimeTick, v);
+    vec3fScale(deltaTimeUpdate, v);
     vec3fAdd(v, cameraPos);
     // Ground
     if (vy(cameraPos) < 2) {

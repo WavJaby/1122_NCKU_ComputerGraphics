@@ -32,7 +32,7 @@ GLfloat lightPosition[] = {2.0, 10.0, -2.0, 1.0};
 char fpsInfo[64];
 
 void fpsUpdate(float fps, float tick) {
-    sprintf(fpsInfo, "fps: %.2f, tick: %.2f, delta: %.6f", fps, tick, deltaTimeTick);
+    sprintf(fpsInfo, "fps: %.2f, tick: %.2f, delta: %.6f", fps, tick, deltaTimeUpdate);
 }
 
 void drawRect(float x, float y, float w, float h) {
