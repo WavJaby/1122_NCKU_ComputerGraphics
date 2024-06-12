@@ -1,12 +1,14 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-#define GLAD_GL_IMPLEMENTATION
-#include <glad/gl.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 #include "linmath.h"
 #include "glfw_camera.h"
+#include "mesh.h"
+
+#define GLAD_GL_IMPLEMENTATION
+#include <glad/gl.h>
 
 int windowWidth = 640;
 int windowHeight = 480;
@@ -39,7 +41,12 @@ void onCursorMove(GLFWwindow* window, double xpos, double ypos) {
 
     cameraAngle[0] += (ypos - lastMouseY) * mouseSensitivity;
     cameraAngle[1] += (xpos - lastMouseX) * mouseSensitivity;
-    printf("%f, %f\n", xpos, ypos);
+	if (cameraAngle[0] > 270)
+        cameraAngle[0] = 270;
+	else if (cameraAngle[0] < 0)
+        cameraAngle[0] = 0;
+
+    printf("%f, %f\n", cameraAngle[0], cameraAngle[1]);
 
     lastMouseX = xpos;
     lastMouseY = ypos;
@@ -178,35 +185,6 @@ int main(int argc, char* argv[]) {
 
     glEnable(GL_DEPTH_TEST);
 
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    GLuint vbo;
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
-
-    GLuint ibo;
-    glGenBuffers(1, &ibo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cubeIndices), cubeIndices, GL_STATIC_DRAW);
-
-    int triangleTotalSize = sizeof(float) * 8;
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, triangleTotalSize, NULL);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, triangleTotalSize, (void*)(sizeof(float) * 3));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, triangleTotalSize, (void*)(sizeof(float) * 5));
-
-    glBindVertexArray(0);
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
-    glDisableVertexAttribArray(2);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
     GLint fragment_shader = compileShader("../shaders/object_shader.frag", GL_FRAGMENT_SHADER);
     GLint vertex_shader = compileShader("../shaders/object_shader.vert", GL_VERTEX_SHADER);
 
@@ -234,7 +212,11 @@ int main(int argc, char* argv[]) {
     GLint material_specular = glGetUniformLocation(program, "material.specular");
     GLint material_shininess = glGetUniformLocation(program, "material.shininess");
 
-    cameraPos[2] = -2;
+    Mesh mesh;
+    createMesh(&mesh, cubeVertices, sizeof(cubeVertices), cubeIndices, sizeof(cubeIndices));
+
+    cameraPos[2] = 0;
+    cameraPos[1] = 3;
 
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -252,15 +234,15 @@ int main(int argc, char* argv[]) {
         glUniform3fv(viewPos, 1, cameraPos);
 
         glUniform1ui(lightMask, 0b00000001);
-        glUniform3f(dirLight_direction, 0, -1, 1);
+        glUniform3f(dirLight_direction, 0, -1, 0);
         glUniform4f(dirLight_color, 1, 1, 1, 1);
         glUniform1f(dirLight_ambient, 0.1);
-        glUniform1f(dirLight_diffuse, 0.5);
+        glUniform1f(dirLight_diffuse, 0.6);
 
         glUniform4f(material_color, 1, 1, 1, 1);
         glUniformMatrix4fv(uModel, 1, GL_FALSE, (float*)model);
-        glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, sizeof(cubeIndices) >> 2, GL_UNSIGNED_INT, NULL);
+        glBindVertexArray(mesh.vao);
+        glDrawElements(GL_TRIANGLES, mesh.indicesCount, GL_UNSIGNED_INT, NULL);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
