@@ -6,6 +6,7 @@
 #include "linmath.h"
 #include "glfw_camera.h"
 #include "mesh.h"
+#include "fps_counter.h"
 
 #define GLAD_GL_IMPLEMENTATION
 #include <glad/gl.h>
@@ -31,7 +32,7 @@ void errorCallback(int error, const char* description) {
     fprintf(stderr, "Error: %s\n", description);
 }
 
-double lastMouseX = -1, lastMouseY = -1, mouseSensitivity = 0.6;
+double lastMouseX = -1, lastMouseY = -1, mouseSensitivity = 10;
 void onCursorMove(GLFWwindow* window, double xpos, double ypos) {
     if (lastMouseX == -1) {
         lastMouseX = xpos;
@@ -39,11 +40,11 @@ void onCursorMove(GLFWwindow* window, double xpos, double ypos) {
         return;
     }
 
-    cameraAngle[0] += (ypos - lastMouseY) * mouseSensitivity;
-    cameraAngle[1] -= (xpos - lastMouseX) * mouseSensitivity;
-	if (cameraAngle[0] > 270)
+    cameraAngle[0] += (ypos - lastMouseY) * mouseSensitivity * deltaTime;
+    cameraAngle[1] -= (xpos - lastMouseX) * mouseSensitivity * deltaTime;
+    if (cameraAngle[0] > 270)
         cameraAngle[0] = 270;
-	else if (cameraAngle[0] < 0)
+    else if (cameraAngle[0] < 0)
         cameraAngle[0] = 0;
 
     printf("%f, %f\n", cameraAngle[0], cameraAngle[1]);
@@ -182,8 +183,8 @@ int main(int argc, char* argv[]) {
     printf("GL Version %d.%d\n", GLAD_VERSION_MAJOR(version), GLAD_VERSION_MINOR(version));
 
     glfwSwapInterval(1);
-
     glEnable(GL_DEPTH_TEST);
+    fpsCounterInit();
 
     GLint fragment_shader = compileShader("../shaders/object_shader.frag", GL_FRAGMENT_SHADER);
     GLint vertex_shader = compileShader("../shaders/object_shader.vert", GL_VERTEX_SHADER);
@@ -217,6 +218,8 @@ int main(int argc, char* argv[]) {
     cameraPos[2] = 0;
     cameraPos[1] = 3;
 
+    fpsCounterInit();
+
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -244,6 +247,7 @@ int main(int argc, char* argv[]) {
         glDrawElements(GL_TRIANGLES, mesh.indicesCount, GL_UNSIGNED_INT, NULL);
 
         glfwSwapBuffers(window);
+        frameUpdate();
         glfwPollEvents();
     }
 

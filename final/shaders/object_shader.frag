@@ -39,7 +39,6 @@ struct PointLight {
 
 uniform DirLight dirLight;
 uniform int pointLightsLength;
-uniform uint lightMask;
 uniform PointLight pointLights[MAX_POINT_LIGHTS];
 uniform Material material;
 uniform vec3 viewPos;
@@ -101,9 +100,8 @@ vec4 CalcPointLight(int index, vec3 normal) {
 
 void main() {
 	vec3 normal = normalize(fNormal);
-	vec4 totalLight = (lightMask & 0x1u) > 0u ? CalcDirectionalLight(normal) : vec4(0);
+	vec4 totalLight = CalcDirectionalLight(normal);
 	
-	if ((lightMask & 0x2u) > 0u)
 	for (int i = 0; i < pointLightsLength; i++) {
 		totalLight += CalcPointLight(i, normal);
 	}
