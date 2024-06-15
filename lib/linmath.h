@@ -18,6 +18,9 @@
 #define M_SQRT2 1.41421356237309504880    /* sqrt(2) */
 #define M_SQRT1_2 0.70710678118654752440  /* 1/sqrt(2) */
 
+#define M_DEG_2_RAD 0.01745329251994329576
+#define M_RAD_2_DEG 57.29577951308232286464
+
 #ifdef LINMATH_NO_INLINE
 #define LINMATH_H_FUNC static
 #else
@@ -74,6 +77,8 @@
 LINMATH_H_DEFINE_VEC(2)
 LINMATH_H_DEFINE_VEC(3)
 LINMATH_H_DEFINE_VEC(4)
+
+const vec3 vec3_up = {0, 1, 0};
 
 LINMATH_H_FUNC void vec3_mul_cross(vec3 r, vec3 const a, vec3 const b) {
     r[0] = a[1] * b[2] - a[2] * b[1];

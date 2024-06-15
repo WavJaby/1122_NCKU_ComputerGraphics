@@ -1,12 +1,13 @@
 #include <stdlib.h>
+#include <stdint.h>
 #include <glad/gl.h>
 
 typedef struct mesh {
     GLuint vao, vbo, ibo;
-    size_t indicesCount
+    size_t indicesCount;
 } Mesh;
 
-void createMesh(Mesh* out, float* vertices, size_t verticesSize, float* indices, size_t indicesSize) {
+void createMesh(Mesh* out, float* vertices, size_t verticesSize, uint32_t* indices, size_t indicesSize) {
     glGenVertexArrays(1, &out->vao);
     glBindVertexArray(out->vao);
 
@@ -38,7 +39,7 @@ void createMesh(Mesh* out, float* vertices, size_t verticesSize, float* indices,
 }
 
 void deleteMesh(Mesh* mesh) {
-    // ibo is after vbo
-    glDeleteBuffers(2, mesh->vbo);
-    glDeleteVertexArrays(1, mesh->vao);
+    GLuint b[] = {mesh->vbo, mesh->ibo};
+    glDeleteBuffers(2, b);
+    glDeleteVertexArrays(1, &mesh->vao);
 }
