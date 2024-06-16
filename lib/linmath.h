@@ -180,10 +180,12 @@ LINMATH_H_FUNC void mat4x4_mul(mat4x4 M, mat4x4 const a, mat4x4 const b) {
 }
 LINMATH_H_FUNC void mat4x4_mul_vec4(vec4 r, mat4x4 const M, vec4 const v) {
     int i, j;
+    float v0 = v[0], v1 = v[1], v2 = v[2], v3 = v[3];
     for (j = 0; j < 4; ++j) {
-        r[j] = 0.f;
-        for (i = 0; i < 4; ++i)
-            r[j] += M[i][j] * v[i];
+        r[j] = M[0][j] * v0 +
+               M[1][j] * v1 +
+               M[2][j] * v2 +
+               M[3][j] * v3;
     }
 }
 LINMATH_H_FUNC void mat4x4_translate_create(mat4x4 T, float x, float y, float z) {

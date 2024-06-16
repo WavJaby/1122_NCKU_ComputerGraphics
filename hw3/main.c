@@ -12,7 +12,7 @@
 #include "fps_counter.h"
 #include "game_object.h"
 #include "gl_first_person_control.h"
-#include "gl_text.h"
+#include "gl_text_old.h"
 #include "gl_user_input.h"
 #include "gl_vector.h"
 #include "stl_reader.h"

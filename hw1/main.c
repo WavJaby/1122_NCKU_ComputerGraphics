@@ -6,7 +6,7 @@
 #include "lib/gl_first_person_control.h"
 #include "lib/gl_user_input.h"
 #include "lib/gl_vector.h"
-#include "lib/gl_text.h"
+#include "lib/gl_text_old.h"
 #include "lib/stl_reader.h"
 #include "lib/debug_grid.h"
 #ifdef _WIN32
