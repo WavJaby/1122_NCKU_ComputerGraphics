@@ -26,7 +26,9 @@ typedef struct ChunkSubMesh {
     float* vertices_uv_normal;
     uint32_t* indices;
     // 1 face contains 2 triangle
-    int faceCount;
+    uint32_t faceCount;
+
+    uint32_t maxFaceSize;
 } ChunkSubMesh;
 
 #define setVertexData(vertices, index, \
@@ -42,6 +44,8 @@ typedef struct ChunkSubMesh {
     vertices[index + 6] = ny;          \
     vertices[index + 7] = nz;          \
     index += 8;
+
+#define GROWTH_FACTOR 2
 
 /**
  * @brief
@@ -63,34 +67,38 @@ void AddFace(ChunkSubMesh* chunkSubMesh, BlockMesh* blockMesh, int elementIndex,
     uint8_t newFaceCount = (uint8_t)((face & 0b1) + (face >> 1 & 0b1) + (face >> 2 & 0b1) + (face >> 3 & 0b1) + (face >> 4 & 0b1) + (face >> 5 & 0b1));
     if (newFaceCount == 0) return;
 
-    // if ((_faceCount + newFaceCount) * 4 > _vertices.Length) {
-    //     int size = (int)(_faceCount * 1.5f) * 4;
-    //     Array.Resize(ref _vertices, size + 1);
-    //     Array.Resize(ref _uv, size + 1);
-    // }
+
+    // total indices count
+    int indicesLen = chunkSubMesh->faceCount * 6;
+    int vertexIndex = chunkSubMesh->faceCount * 4;
+    // total vertices array size
+    int verticesSize = chunkSubMesh->faceCount * 32;
+
+    float _modelScale = 1.f / 16;
+
+    if ((chunkSubMesh->faceCount + newFaceCount) > chunkSubMesh->maxFaceSize) {
+        if (chunkSubMesh->maxFaceSize == 0)
+            chunkSubMesh->maxFaceSize = 6;
+        else
+            chunkSubMesh->maxFaceSize *= GROWTH_FACTOR;
+        size_t newVerticesSize = chunkSubMesh->maxFaceSize * 32;
+        chunkSubMesh->vertices_uv_normal = realloc(chunkSubMesh->vertices_uv_normal, newVerticesSize * sizeof(float));
+
+        size_t newIndicesSize = chunkSubMesh->maxFaceSize * 6;
+        chunkSubMesh->indices = realloc(chunkSubMesh->indices, newIndicesSize * sizeof(int));
+        printf("%d\n", chunkSubMesh->maxFaceSize);
+    }
+    
+    uint32_t* _indices = chunkSubMesh->indices;
+    float* _vertices_uv_normal = chunkSubMesh->vertices_uv_normal;
 
     // if (_faceCount + newFaceCount > _faceIndex.Length)
     //     Array.Resize(ref _faceIndex, (int)(_faceIndex.Length * 1.5f));
     // if ((_faceCount + newFaceCount) * 6 > _indices.Length)
     //     Array.Resize(ref _indices, (int)(_faceCount * 1.5f) * 6);
 
-    // int triCnt = _faceCount * 6;
-
-    // 到目前所有的頂點
-    // int cnt = _faceCount * 4 + 1;
-
-    uint32_t* _indices = chunkSubMesh->indices;
-    float* _vertices_uv_normal = chunkSubMesh->vertices_uv_normal;
-
-    // total indices count
-    int indicesLen = chunkSubMesh->faceCount * 6;
-    int vertexIndex = chunkSubMesh->faceCount * 4;
-    // total vertices float array count
-    int verticesSize = chunkSubMesh->faceCount * 8 * 4;
-
-    float _modelScale = 1.f / 16;
-    float from[3] = {element->from[0] * _modelScale, element->from[1] * _modelScale, 1 - element->to[2] * _modelScale};
-    float to__[3] = {element->to[0] * _modelScale, element->to[1] * _modelScale, 1 - element->from[2] * _modelScale};
+    float from[3] = {element->from[0] * _modelScale, element->from[1] * _modelScale, element->from[2] * _modelScale};
+    float to__[3] = {element->to[0] * _modelScale, element->to[1] * _modelScale, element->to[2] * _modelScale};
 
     // Vector3 center;
     // Vector3 blockCenter;

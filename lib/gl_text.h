@@ -188,7 +188,7 @@ void ui_textDrawChar(GLuint file, float x, float y, float w, float h, float angl
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
-void glDrawString(char* str, float x, float y, float charHeight) {
+void ui_textDrawString(char* str, float x, float y, float charHeight) {
     glUseProgram(glTextDefaultShader);
     glUniform4f(glTextColor, 1, 1, 1, 1);
 
@@ -208,7 +208,7 @@ void glDrawString(char* str, float x, float y, float charHeight) {
     }
 }
 
-uint32_t glCalculateStringWidth(char* str, float charHeight) {
+uint32_t ui_calculateStringWidth(char* str, float charHeight) {
     float scale = charHeight / maxTextHeight;
     uint32_t width = 0;
     for (; *str; str++) {
@@ -218,9 +218,9 @@ uint32_t glCalculateStringWidth(char* str, float charHeight) {
     return width;
 }
 
-void glDrawStringCenter(char* str, float x, float y, float charHeight) {
-    uint32_t width = glCalculateStringWidth(str, charHeight);
-    glDrawString(str, x - width / 2, y, charHeight);
+void ui_drawStringCenter(char* str, float x, float y, float charHeight) {
+    uint32_t width = ui_calculateStringWidth(str, charHeight);
+    ui_textDrawString(str, x - width / 2, y, charHeight);
 }
 
 #endif

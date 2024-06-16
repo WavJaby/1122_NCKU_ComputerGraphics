@@ -58,6 +58,11 @@ void onCursorMove(GLFWwindow* window, double xpos, double ypos) {
     lastMouseY = ypos;
 }
 
+char fpsInfo[64]; 
+void fpsUpdate(float fps, float tick) {
+    sprintf(fpsInfo, "fps:%7.2f, tick: %.2f, d: %.5f", fps, tick, deltaTime);
+}
+
 int main(int argc, char* argv[]) {
     printf("Program start\n");
 
@@ -96,8 +101,6 @@ int main(int argc, char* argv[]) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    glEnable(GL_DEPTH_TEST);
-
     // Init UI render
     ui_init();
 
@@ -130,17 +133,18 @@ int main(int argc, char* argv[]) {
     GLint material_shininess = glGetUniformLocation(program, "material.shininess");
 
     ChunkSubMesh chunkSubMesh = {};
-    chunkSubMesh.vertices_uv_normal = malloc(10000);
-    chunkSubMesh.indices = malloc(10000);
-    BlockMesh blockMesh = {0, -2, 0};
+    BlockMesh blockMesh = {0, 0, 0};
 
     BlockModelElement element = {.from = {0, 0, 0}, .to = {16, 16, 16}};
     element.faces[0] = &(BlockModelElementFaceData){};
+    element.faces[1] = &(BlockModelElementFaceData){};
     element.faces[2] = &(BlockModelElementFaceData){};
+    element.faces[3] = &(BlockModelElementFaceData){};
     element.faces[4] = &(BlockModelElementFaceData){};
+    element.faces[5] = &(BlockModelElementFaceData){};
 
     uint8_t rotateIndex[6] = {0, 1, 2, 3, 4, 5};
-    AddFace(&chunkSubMesh, &blockMesh, 0, 0b010101, &element, rotateIndex, 0, 0, false);
+    AddFace(&chunkSubMesh, &blockMesh, 0, 0b111111, &element, rotateIndex, 0, 0, false);
 
     Mesh mesh;
     createMesh(&mesh, chunkSubMesh.vertices_uv_normal, sizeof(float) * 8 * chunkSubMesh.faceCount * 4,
@@ -154,13 +158,13 @@ int main(int argc, char* argv[]) {
     mat4x4_identity_create(model);
 
     fpsCounterInit();
-    int moveSpeed = 10;
+    int moveSpeed = 2;
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         camera_updateViewMatrix();
 
-        vec3 dir = {cameraVec[0], 0, cameraVec[2]}, v = {0, 0, 0};
+        vec3 dir = {cameraDir[0], 0, cameraDir[2]}, v = {0, 0, 0};
         // vec3_norm(dir, dir);
 
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -178,19 +182,20 @@ int main(int argc, char* argv[]) {
             vec3_add(v, v, right);
         }
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-            v[1] = -1;
-        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
             v[1] = 1;
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+            v[1] = -1;
 
-        vec3_scale(v, v, deltaTime);
+        vec3_scale(v, v, deltaTime * moveSpeed);
         vec3_add(cameraPos, cameraPos, v);
 
         // mat4x4_rotate_X(model, model, 0.001);
 
         // Render model
+        glEnable(GL_DEPTH_TEST);
         glCullFace(GL_BACK);
         glFrontFace(GL_CCW);
-        
+
         glUseProgram(program);
         glUniformMatrix4fv(uProjection, 1, GL_FALSE, (float*)cameraProjectionMat);
         glUniformMatrix4fv(uView, 1, GL_FALSE, (float*)cameraViewMat);
@@ -216,17 +221,18 @@ int main(int argc, char* argv[]) {
         glDisable(GL_DEPTH_TEST);
         glCullFace(GL_BACK);
         glFrontFace(GL_CW);
-        glDrawString("12345", 0, 20, 20);
-        // glDrawString("12345", 0, 0, 0.1);
-        // glTextDrawChar('a', -0.99, -0.99, 1.98, 1.98, 0);
+        ui_textDrawString(fpsInfo, 5, 20, 20);
+        
+        char infoCache[128];
+        sprintf(infoCache, "Camera pos: (%.2f, %.2f, %.2f), dir: (%.2f, %.2f, %.2f)",
+                cameraPos[0], cameraPos[1], cameraPos[2],
+                cameraDir[0], cameraDir[1], cameraDir[2]);
+        ui_textDrawString(infoCache, 5, 20 * 2, 20);
 
-        // glUseProgram(glTextDefaultShader);
-        // glUniform4f(glTextColor, 1, 1, 1, 1);
-        // glTextDrawChar(1, 0, 0, 100, 100, 0);
         glEnable(GL_DEPTH_TEST);
 
         glfwSwapBuffers(window);
-        frameUpdate();
+        frameUpdate(fpsUpdate);
         glfwPollEvents();
     }
 

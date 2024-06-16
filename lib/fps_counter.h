@@ -7,7 +7,7 @@
 
 #define FPS_UPDATE_INTERVAL 100000
 
-int fpsCounter_frameCount;
+int fpsCounter_frameCount, fpsCounter_tickCount;
 float deltaTimeUpdate, deltaTime;
 
 /**
@@ -37,22 +37,11 @@ static inline uint64_t timeInterval(struct timespec *a, struct timespec *b) {
     return (b->tv_sec - a->tv_sec) * 1000000 + (b->tv_nsec - a->tv_nsec) / 1000;
 }
 
-void tickUpdate(void (*fpsUpdate)(float fps, float tick)) {
+void tickUpdate() {
     static struct timespec tickStart = {0}, tickTime = {0};
-    static int tickCount = 0;
 
     deltaTimeUpdate = (getTimePass(&tickTime) / 1000000.0f);
-    ++tickCount;
-    
-    float time;
-    // Do periodic frame rate calculation
-    if (fpsUpdate && (time = timeInterval(&tickStart, &tickTime)) >= FPS_UPDATE_INTERVAL) {
-        tickStart = tickTime;
-        float timeSec = time / 1000000.0f;
-        fpsUpdate(fpsCounter_frameCount / timeSec, tickCount / timeSec);
-        fpsCounter_frameCount = 0;
-        tickCount = 0;
-    }
+    ++fpsCounter_tickCount;
 }
 
 void fpsCounterInit() {
@@ -61,11 +50,21 @@ void fpsCounterInit() {
     deltaTime = 0;
 }
 
-void frameUpdate() {
-    static struct timespec renderTime = {0};
+void frameUpdate(void (*fpsUpdate)(float fps, float tick)) {
+    static struct timespec renderTime = {0}, lastFpsUpdateTime = {0};
 
     deltaTime = (getTimePass(&renderTime) / 1000000.0f);
     ++fpsCounter_frameCount;
+    
+    float time;
+    // Do periodic frame rate calculation
+    if (fpsUpdate && (time = timeInterval(&lastFpsUpdateTime, &renderTime)) >= FPS_UPDATE_INTERVAL) {
+        lastFpsUpdateTime = renderTime;
+        float timeSec = time / 1000000.0f;
+        fpsUpdate(fpsCounter_frameCount / timeSec, fpsCounter_tickCount / timeSec);
+        fpsCounter_frameCount = 0;
+        fpsCounter_tickCount = 0;
+    }
 }
 
 #endif

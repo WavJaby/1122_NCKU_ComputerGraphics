@@ -29,7 +29,7 @@ int windowCenterX = -1, windowCenterY = -1;
 Vector3f cameraPos = {0.0, 0.0, 0.0};
 Vector3f cameraVelocity = {0.0, 0.0, 0.0};
 Vector3f cameraAngle = {0.0, 0.0, 0.0};
-Vector3f cameraVec = {0.0, 0.0, 0.0};
+Vector3f cameraDir = {0.0, 0.0, 0.0};
 
 int lastMouseX = -1, lastMouseY = -1;
 
@@ -86,9 +86,9 @@ void firstPersonWindowSizeUpdate(int width, int height) {
 void calculateCameraMovement() {
     double cameraAngley = vy(cameraAngle) * M_Ang2Rad;
     double cameraAnglex = vx(cameraAngle) * M_Ang2Rad;
-    vx(cameraVec) = cos(cameraAngley) * cos(cameraAnglex);
-    vy(cameraVec) = sin(cameraAnglex);
-    vz(cameraVec) = sin(cameraAngley) * cos(cameraAnglex);
+    vx(cameraDir) = cos(cameraAngley) * cos(cameraAnglex);
+    vy(cameraDir) = sin(cameraAnglex);
+    vz(cameraDir) = sin(cameraAngley) * cos(cameraAnglex);
 
     if (firstPersonPause) return;
 
@@ -115,22 +115,22 @@ void calculateCameraMovement() {
     bool anyKey = false;
     Vector3f moveAccXZ = {0, 0, 0};
     if (keys[GLUT_KEY_UP]) {
-        vec3fAdd((Vector3f){vx(cameraVec), 0, vz(cameraVec)}, moveAccXZ);
+        vec3fAdd((Vector3f){vx(cameraDir), 0, vz(cameraDir)}, moveAccXZ);
         anyKey = true;
     }
     if (keys[GLUT_KEY_DOWN]) {
-        vec3fAdd((Vector3f){-vx(cameraVec), 0, -vz(cameraVec)}, moveAccXZ);
+        vec3fAdd((Vector3f){-vx(cameraDir), 0, -vz(cameraDir)}, moveAccXZ);
         anyKey = true;
     }
     if (keys[GLUT_KEY_RIGHT]) {
         Vector3f right;
-        vec3fCross((Vector3f){vx(cameraVec), 0, vz(cameraVec)}, (Vector3f){0, 1, 0}, right);
+        vec3fCross((Vector3f){vx(cameraDir), 0, vz(cameraDir)}, (Vector3f){0, 1, 0}, right);
         vec3fAdd(right, moveAccXZ);
         anyKey = true;
     }
     if (keys[GLUT_KEY_LEFT]) {
         Vector3f left;
-        vec3fCross((Vector3f){vx(cameraVec), 0, vz(cameraVec)}, (Vector3f){0, -1, 0}, left);
+        vec3fCross((Vector3f){vx(cameraDir), 0, vz(cameraDir)}, (Vector3f){0, -1, 0}, left);
         vec3fAdd(left, moveAccXZ);
         anyKey = true;
     }
@@ -200,7 +200,7 @@ void calculateCameraMatrix() {
     // glRotatef(vy(cameraAngle), 0, 1, 0);
     // glRotatef(vx(cameraAngle), 0, 1, 0);
     gluLookAt(vx(cameraPos), vy(cameraPos), vz(cameraPos),
-              vx(cameraPos) + vx(cameraVec), vy(cameraPos) + vy(cameraVec), vz(cameraPos) + vz(cameraVec),
+              vx(cameraPos) + vx(cameraDir), vy(cameraPos) + vy(cameraDir), vz(cameraPos) + vz(cameraDir),
               0, 1, 0);  // up direction
 
     // printf("%f, %f, %f\n", vx(cameraVec), vy(cameraVec), vz(cameraVec));
