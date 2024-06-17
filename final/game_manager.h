@@ -173,7 +173,7 @@ float terrain(int x, int y, float size) {
     }
 
     // Contrast
-    val *= 1.3;
+    val *= 1.4;
 
     // Clipping
     if (val > 1.0f)
@@ -211,14 +211,14 @@ void* generateWorld(void* data) {
                         block->yInChunk = y & CHUNK_SUB_Y_SIZE_MASK;
                         block->zInChunk = z;
 
-                        if (y + 1 == (int)h)
+                        if (y < 4)
+                            block->model = gameManager.sandBlockModel;
+                        else if (y + 1 == (int)h)
                             block->model = gameManager.grassBlockModel;
                         else if (y + 5 > h)
                             block->model = gameManager.dirtBlockModel;
-                        else if (y > 2)
-                            block->model = gameManager.stoneBlockModel;
                         else
-                            block->model = gameManager.sandBlockModel;
+                            block->model = gameManager.stoneBlockModel;
 
                         // Get ChunkSub
                         ChunkSub* chunkSub = chunk->chunkSub[chunk_getChunkSubIndexByBlockY(y)];
