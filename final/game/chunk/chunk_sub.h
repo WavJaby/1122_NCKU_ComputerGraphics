@@ -1,6 +1,10 @@
+#ifndef __CHUNK_SUB_H__
+#define __CHUNK_SUB_H__
+
 #include "chunk_settings.h"
 #include "chunk_sub_mesh.h"
 #include "../block/block.h"
+#include "chunk.h"
 
 #define getBlockIndex(x, y, z) ((x) + ((z) + (y) * CHUNK_SIZE_Z) * CHUNK_SIZE_X)
 
@@ -18,21 +22,35 @@ const MapNodeInfo info = {
 };
 
 typedef struct ChunkSub {
-    int chunkX, chunkY, chunkZ;
+    int subIndex;
     Block* chunkSubBlocks[CHUNK_SIZE_X * CHUNK_SIZE_Z * CHUNK_SUB_Y_SIZE];
     BlockMesh* chunkSubBlockMeshs[CHUNK_SIZE_X * CHUNK_SIZE_Z * CHUNK_SUB_Y_SIZE];
     // Map<GLuint TextureId, ChunkSubTextureMesh*>
     Map chunkSubTextureMeshMap;
-    
-    struct ChunkSub* left;
-    struct ChunkSub* right;
-    struct ChunkSub* front;
-    struct ChunkSub* back;
+
+    struct Chunk* parent;
+    struct ChunkSub* top;
+    struct ChunkSub* bottom;
 } ChunkSub;
 
-ChunkSub* chunkSub_new() {
+ChunkSub* chunkSub_new(Chunk* parent, int blockY) {
     ChunkSub* chunkSub = calloc(1, sizeof(ChunkSub));
     chunkSub->chunkSubTextureMeshMap.info = info;
+
+    chunkSub->parent = parent;
+    chunkSub->subIndex = chunk_getChunkSubIndexByBlockY(blockY);
+
+    ChunkSub* top = parent->chunkSub[chunkSub->subIndex + 1];
+    if (top) {
+        chunkSub->top = top;
+        top->bottom = chunkSub;
+    }
+    ChunkSub* bottom = parent->chunkSub[chunkSub->subIndex - 1];
+    if (bottom) {
+        chunkSub->bottom = bottom;
+        bottom->top = chunkSub;
+    }
+
     return chunkSub;
 }
 
@@ -155,14 +173,22 @@ void chunkSub_initMeshVertices(ChunkSub* chunkSub) {
         for (uint8_t y = 0; y < 16; y++) {
             for (uint8_t z = 0; z < 16; z++) {
                 Block* block = chunkSub->chunkSubBlocks[getBlockIndex(x, y, z)];
-                Block* right = x == 15 ? chunkSub->right->chunkSubBlocks[getBlockIndex(0, y, z)] : chunkSub->chunkSubBlocks[getBlockIndex(x + 1, y, z)];
-                Block* left = x == 0 ? chunkSub->left->chunkSubBlocks[getBlockIndex(CHUNK_SIZE_X - 1, y, z)] : chunkSub->chunkSubBlocks[getBlockIndex(x - 1, y, z)];
-                Block* top = y == 15 ? NULL : chunkSub->chunkSubBlocks[getBlockIndex(x, y + 1, z)];
-                Block* bottom = y == 0 ? NULL : chunkSub->chunkSubBlocks[getBlockIndex(x, y - 1, z)];
-                Block* front = z == 15 ? chunkSub->front->chunkSubBlocks[getBlockIndex(x, y, 0)] : chunkSub->chunkSubBlocks[getBlockIndex(x, y, z + 1)];
-                Block* back = z == 0 ? chunkSub->back->chunkSubBlocks[getBlockIndex(x, y, CHUNK_SIZE_Z - 1)] : chunkSub->chunkSubBlocks[getBlockIndex(x, y, z - 1)];
-
                 if (!block) continue;
+                ChunkSub* rightChunkSub = chunkSub->parent->right ? chunkSub->parent->right->chunkSub[chunkSub->subIndex] : NULL;
+                Block* right = x == 15 ? rightChunkSub ? rightChunkSub->chunkSubBlocks[getBlockIndex(0, y, z)] : NULL : chunkSub->chunkSubBlocks[getBlockIndex(x + 1, y, z)];
+
+                ChunkSub* leftChunkSub = chunkSub->parent->left ? chunkSub->parent->left->chunkSub[chunkSub->subIndex] : NULL;
+                Block* left = x == 0 ? leftChunkSub ? leftChunkSub->chunkSubBlocks[getBlockIndex(CHUNK_SIZE_X - 1, y, z)] : NULL : chunkSub->chunkSubBlocks[getBlockIndex(x - 1, y, z)];
+
+                Block* top = y == 15 ? chunkSub->top ? chunkSub->top->chunkSubBlocks[getBlockIndex(x, 0, z)] : NULL : chunkSub->chunkSubBlocks[getBlockIndex(x, y + 1, z)];
+                Block* bottom = y == 0 ? chunkSub->bottom->chunkSubBlocks[getBlockIndex(x, CHUNK_SUB_Y_SIZE - 1, z)] : chunkSub->chunkSubBlocks[getBlockIndex(x, y - 1, z)];
+
+                ChunkSub* frontChunkSub = chunkSub->parent->front ? chunkSub->parent->front->chunkSub[chunkSub->subIndex] : NULL;
+                Block* front = z == 15 ? frontChunkSub ? frontChunkSub->chunkSubBlocks[getBlockIndex(x, y, 0)] : NULL : chunkSub->chunkSubBlocks[getBlockIndex(x, y, z + 1)];
+
+                ChunkSub* backChunkSub = chunkSub->parent->back ? chunkSub->parent->back->chunkSub[chunkSub->subIndex] : NULL;
+                Block* back = z == 0 ? backChunkSub ? backChunkSub->chunkSubBlocks[getBlockIndex(x, y, CHUNK_SIZE_Z - 1)] : NULL : chunkSub->chunkSubBlocks[getBlockIndex(x, y, z - 1)];
+
                 uint8_t* faces = malloc(sizeof(uint8_t) * block->model->elementsCount);
                 for (size_t i = 0; i < block->model->elementsCount; i++) {
                     faces[i] = deleteDuplicateFace(block->model, right, left, top, bottom, front, back, i, -1);
@@ -199,3 +225,5 @@ void chunkSub_render(ChunkSub* chunkSub) {
         glDrawElements(GL_TRIANGLES, mesh->indicesCount, GL_UNSIGNED_INT, NULL);
     };
 }
+
+#endif
