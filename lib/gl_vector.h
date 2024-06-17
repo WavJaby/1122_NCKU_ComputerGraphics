@@ -96,18 +96,18 @@ typedef float Matrix44f[16];  // 4 X 4 matrix
       0.0f, 0.0f, 1.0f, 0.0f, \
       0.0f, 0.0f, 0.0f, 1.0f }
 
-#define A(x, y) a[(y << 2) + x]
-#define B(x, y) b[(y << 2) + x]
-#define P(x, y) product[(y << 2) + x]
+#define  glvA(x, y) a[(y << 2) + x]
+#define  glvB(x, y) b[(y << 2) + x]
+#define  glvP(x, y) product[(y << 2) + x]
 
 // Multiply two 4x4 matricies
 void mat44fMultiply(const Matrix44f a, const Matrix44f b, Matrix44f product) {
     for (int i = 0; i < 4; i++) {
-        float ai0 = A(i, 0), ai1 = A(i, 1), ai2 = A(i, 2), ai3 = A(i, 3);
-        P(i, 0) = ai0 * B(0, 0) + ai1 * B(1, 0) + ai2 * B(2, 0) + ai3 * B(3, 0);
-        P(i, 1) = ai0 * B(0, 1) + ai1 * B(1, 1) + ai2 * B(2, 1) + ai3 * B(3, 1);
-        P(i, 2) = ai0 * B(0, 2) + ai1 * B(1, 2) + ai2 * B(2, 2) + ai3 * B(3, 2);
-        P(i, 3) = ai0 * B(0, 3) + ai1 * B(1, 3) + ai2 * B(2, 3) + ai3 * B(3, 3);
+        float ai0 = glvA(i, 0), ai1 = glvA(i, 1), ai2 = glvA(i, 2), ai3 = glvA(i, 3);
+        glvP(i, 0) = ai0 *  glvB(0, 0) + ai1 *  glvB(1, 0) + ai2 *  glvB(2, 0) + ai3 *  glvB(3, 0);
+        glvP(i, 1) = ai0 *  glvB(0, 1) + ai1 *  glvB(1, 1) + ai2 *  glvB(2, 1) + ai3 *  glvB(3, 1);
+        glvP(i, 2) = ai0 *  glvB(0, 2) + ai1 *  glvB(1, 2) + ai2 *  glvB(2, 2) + ai3 *  glvB(3, 2);
+        glvP(i, 3) = ai0 *  glvB(0, 3) + ai1 *  glvB(1, 3) + ai2 *  glvB(2, 3) + ai3 *  glvB(3, 3);
     }
 }
 
@@ -120,73 +120,73 @@ static inline void mat44fTranslate(Matrix44f m, const Vector3f vec) {
 void mat44fRotationX(Matrix44f a, double angle) {
     double s = sin(angle), c = cos(angle);
 
-    A(0, 0) = 1;
-    A(0, 1) = 0;
-    A(0, 2) = 0;
-    A(0, 3) = 0;
+    glvA(0, 0) = 1;
+    glvA(0, 1) = 0;
+    glvA(0, 2) = 0;
+    glvA(0, 3) = 0;
 
-    A(1, 0) = 0;
-    A(1, 1) = c;
-    A(1, 2) = -s;
-    A(1, 3) = 0;
+    glvA(1, 0) = 0;
+    glvA(1, 1) = c;
+    glvA(1, 2) = -s;
+    glvA(1, 3) = 0;
 
-    A(2, 0) = 0;
-    A(2, 1) = s;
-    A(2, 2) = c;
-    A(2, 3) = 0;
+    glvA(2, 0) = 0;
+    glvA(2, 1) = s;
+    glvA(2, 2) = c;
+    glvA(2, 3) = 0;
 
-    A(3, 0) = 0;
-    A(3, 1) = 0;
-    A(3, 2) = 0;
-    A(3, 3) = 1;
+    glvA(3, 0) = 0;
+    glvA(3, 1) = 0;
+    glvA(3, 2) = 0;
+    glvA(3, 3) = 1;
 }
 
 void mat44fRotationY(Matrix44f a, double angle) {
     double s = sin(angle), c = cos(angle);
 
-    A(0, 0) = c;
-    A(0, 1) = 0;
-    A(0, 2) = s;
-    A(0, 3) = 0;
+    glvA(0, 0) = c;
+    glvA(0, 1) = 0;
+    glvA(0, 2) = s;
+    glvA(0, 3) = 0;
 
-    A(1, 0) = 0;
-    A(1, 1) = 1;
-    A(1, 2) = 0;
-    A(1, 3) = 0;
+    glvA(1, 0) = 0;
+    glvA(1, 1) = 1;
+    glvA(1, 2) = 0;
+    glvA(1, 3) = 0;
 
-    A(2, 0) = -s;
-    A(2, 1) = 0;
-    A(2, 2) = c;
-    A(2, 3) = 0;
+    glvA(2, 0) = -s;
+    glvA(2, 1) = 0;
+    glvA(2, 2) = c;
+    glvA(2, 3) = 0;
 
-    A(3, 0) = 0;
-    A(3, 1) = 0;
-    A(3, 2) = 0;
-    A(3, 3) = 1;
+    glvA(3, 0) = 0;
+    glvA(3, 1) = 0;
+    glvA(3, 2) = 0;
+    glvA(3, 3) = 1;
 }
 
 void mat44fRotationZ(Matrix44f a, double angle) {
     double s = sin(angle), c = cos(angle);
 
-    A(0, 0) = c;
-    A(0, 1) = -s;
-    A(0, 2) = 0;
-    A(0, 3) = 0;
+    glvA(0, 0) = c;
+    glvA(0, 1) = -s;
+    glvA(0, 2) = 0;
+    glvA(0, 3) = 0;
 
-    A(1, 0) = s;
-    A(1, 1) = c;
-    A(1, 2) = 0;
-    A(1, 3) = 0;
+    glvA(1, 0) = s;
+    glvA(1, 1) = c;
+    glvA(1, 2) = 0;
+    glvA(1, 3) = 0;
 
-    A(2, 0) = 0;
-    A(2, 1) = 0;
-    A(2, 2) = 1;
-    A(2, 3) = 0;
+    glvA(2, 0) = 0;
+    glvA(2, 1) = 0;
+    glvA(2, 2) = 1;
+    glvA(2, 3) = 0;
 
-    A(3, 0) = 0;
-    A(3, 1) = 0;
-    A(3, 2) = 0;
-    A(3, 3) = 1;
+    glvA(3, 0) = 0;
+    glvA(3, 1) = 0;
+    glvA(3, 2) = 0;
+    glvA(3, 3) = 1;
 }
 
 static inline void mat44fGetPosition(Matrix44f m, Vector3f dest) {
@@ -196,11 +196,11 @@ static inline void mat44fGetPosition(Matrix44f m, Vector3f dest) {
 }
 
 static inline void mat44fGetEulerAngles(const Matrix44f a, Vector3f dest) {
-    dest[0] = atan2(-A(1, 2), A(2, 2));
-    float cosYangle = sqrt(pow(A(0, 0), 2) + pow(A(0, 1), 2));
-    dest[1] = atan2(A(0, 2), cosYangle);
+    dest[0] = atan2(-glvA(1, 2), glvA(2, 2));
+    float cosYangle = sqrt(pow(glvA(0, 0), 2) + pow(glvA(0, 1), 2));
+    dest[1] = atan2(glvA(0, 2), cosYangle);
     float sinXangle = sin(dest[0]);
     float cosXangle = cos(dest[0]);
-    dest[2] = atan2(cosXangle * A(1, 0) + sinXangle * A(2, 0), cosXangle * A(1, 1) + sinXangle * A(2, 1));
+    dest[2] = atan2(cosXangle * glvA(1, 0) + sinXangle * glvA(2, 0), cosXangle * glvA(1, 1) + sinXangle * glvA(2, 1));
 }
 #endif

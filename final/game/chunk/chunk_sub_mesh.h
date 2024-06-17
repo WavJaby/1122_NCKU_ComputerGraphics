@@ -1,27 +1,7 @@
+#include "../block/block.h"
+#include "../../mesh.h"
 
-typedef struct BlockModelElementFaceData {
-    int testureId;
-    // [x,y] * 4
-    float uv[8];
-} BlockModelElementFaceData;
-
-typedef struct BlockModelElement {
-    vec3 from, to;
-    // x,-x, y,-y, z,-z
-    BlockModelElementFaceData* faces[6];
-    uint8_t cullFaces[6];  // cull face index
-} BlockModelElement;
-
-typedef struct BlockModel {
-    BlockModelElement* elements;
-    int elementsLen;
-} BlockModel;
-
-typedef struct BlockMesh {
-    int x, y, z;
-} BlockMesh;
-
-typedef struct ChunkSubMesh {
+typedef struct ChunkSubTextureMesh {
     // x,y,z, u,v, x,y,z
     float* vertices_uv_normal;
     uint32_t* indices;
@@ -29,7 +9,10 @@ typedef struct ChunkSubMesh {
     uint32_t faceCount;
 
     uint32_t maxFaceSize;
-} ChunkSubMesh;
+
+    GLuint textureId;
+    Mesh* mesh;
+} ChunkSubTextureMesh;
 
 #define setVertexData(vertices, index, \
                       u, v,            \
@@ -60,13 +43,12 @@ typedef struct ChunkSubMesh {
  * @param rotY block rotation y
  * @param uvLock local texture rotation on +y, -y face
  */
-void AddFace(ChunkSubMesh* chunkSubMesh, BlockMesh* blockMesh, int elementIndex,
+void AddFace(ChunkSubTextureMesh* chunkSubMesh, BlockMesh* blockMesh, int elementIndex,
              uint8_t face, BlockModelElement* element,
              uint8_t rotateIndex[6],
              int rotX, int rotY, bool uvLock) {
     uint8_t newFaceCount = (uint8_t)((face & 0b1) + (face >> 1 & 0b1) + (face >> 2 & 0b1) + (face >> 3 & 0b1) + (face >> 4 & 0b1) + (face >> 5 & 0b1));
     if (newFaceCount == 0) return;
-
 
     // total indices count
     int indicesLen = chunkSubMesh->faceCount * 6;
@@ -88,7 +70,7 @@ void AddFace(ChunkSubMesh* chunkSubMesh, BlockMesh* blockMesh, int elementIndex,
         chunkSubMesh->indices = realloc(chunkSubMesh->indices, newIndicesSize * sizeof(int));
         printf("%d\n", chunkSubMesh->maxFaceSize);
     }
-    
+
     uint32_t* _indices = chunkSubMesh->indices;
     float* _vertices_uv_normal = chunkSubMesh->vertices_uv_normal;
 

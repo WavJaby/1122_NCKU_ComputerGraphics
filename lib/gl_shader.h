@@ -1,11 +1,6 @@
 #ifndef __GL_SHADER_H__
 #define __GL_SHADER_H__
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <glad/gl.h>
-
 GLuint compileShader(char* src, char* path, GLenum shaderType) {
     // Compile shader
     GLuint shader = glCreateShader(shaderType);

@@ -3,9 +3,6 @@
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
-#include <stdint.h>
-#include <stdlib.h>
-#include <glad/gl.h>
 
 #ifdef _WIN32
 #define FONT_FILE_NAME "C:/Windows/Fonts/Calibri.ttf"

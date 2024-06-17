@@ -1,6 +1,5 @@
-#include <stdlib.h>
-#include <stdint.h>
-#include <glad/gl.h>
+#ifndef __MESH_H__
+#define __MESH_H__
 
 typedef struct mesh {
     GLuint vao, vbo, ibo;
@@ -43,3 +42,5 @@ void deleteMesh(Mesh* mesh) {
     glDeleteBuffers(2, b);
     glDeleteVertexArrays(1, &mesh->vao);
 }
+
+#endif

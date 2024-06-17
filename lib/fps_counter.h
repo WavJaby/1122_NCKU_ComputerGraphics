@@ -38,7 +38,7 @@ static inline uint64_t timeInterval(struct timespec *a, struct timespec *b) {
 }
 
 void tickUpdate() {
-    static struct timespec tickStart = {0}, tickTime = {0};
+    static struct timespec tickTime = {0};
 
     deltaTimeUpdate = (getTimePass(&tickTime) / 1000000.0f);
     ++fpsCounter_tickCount;

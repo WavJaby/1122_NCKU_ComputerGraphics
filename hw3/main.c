@@ -296,6 +296,10 @@ void initGL() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void fpsUpdate(float fps, float tick) {
+    sprintf(fpsInfo, "fps:%7.2f, tick: %.2f, d: %.5f", fps, tick, deltaTimeUpdate);
+}
+
 void display() {
     updateShadowMap();
 
@@ -410,7 +414,7 @@ void display() {
     glPopMatrix();
 
     // Update screen
-    frameUpdate();
+    frameUpdate(fpsUpdate);
     glutSwapBuffers();
 }
 
@@ -479,10 +483,6 @@ void updateGame() {
     // printf(vec3PrintFmt("%.4f") "\n", vec3Print(clawBase->globalPosition));
 }
 
-void fpsUpdate(float fps, float tick) {
-    sprintf(fpsInfo, "fps:%7.2f, tick: %.2f, d: %.5f", fps, tick, deltaTimeUpdate);
-}
-
 void update() {
     userInputInitUpdate();
     calculateCameraMovement();
@@ -500,7 +500,7 @@ void update() {
             debugText = !debugText;
     }
 
-    tickUpdate(fpsUpdate);
+    tickUpdate();
 }
 
 void reshape(GLsizei width, GLsizei height) {

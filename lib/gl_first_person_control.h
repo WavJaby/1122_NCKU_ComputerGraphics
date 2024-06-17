@@ -74,7 +74,9 @@ void firstPersonMouse(int x, int y) {
 
 void firstPersonInit() {
     glutSetCursor(GLUT_CURSOR_NONE);
-    userInputMouseFunc(firstPersonMouse);
+    // userInputMouseFunc(firstPersonMouse);
+    glutMotionFunc(firstPersonMouse);
+    glutPassiveMotionFunc(firstPersonMouse);
     getTimePass(&spaceKeyInterval);
 }
 

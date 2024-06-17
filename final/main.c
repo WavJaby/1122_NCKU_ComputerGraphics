@@ -4,16 +4,25 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#define WJCL_HASH_MAP_IMPLEMENTATION
+#define WJCL_LINKED_LIST_IMPLEMENTATION
+#include <WJCL/map/wjcl_hash_map.h>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
+#define GLAD_GL_IMPLEMENTATION
+#include <glad/gl.h>
+
 #include "linmath.h"
 #include "glfw_camera.h"
 #include "fps_counter.h"
 #include "mesh.h"
 #include "gl_shader.h"
 #include "gl_text.h"
-#include "game/chunk/chunk_mesh.h"
-
-#define GLAD_GL_IMPLEMENTATION
-#include <glad/gl.h>
+#include "game/chunk/chunk_sub.h"
+#include "game/chunk/chunk.h"
+#include "game/block/block.h"
 
 int windowWidth = 640;
 int windowHeight = 480;
@@ -58,9 +67,36 @@ void onCursorMove(GLFWwindow* window, double xpos, double ypos) {
     lastMouseY = ypos;
 }
 
-char fpsInfo[64]; 
+char fpsInfo[64];
 void fpsUpdate(float fps, float tick) {
     sprintf(fpsInfo, "fps:%7.2f, tick: %.2f, d: %.5f", fps, tick, deltaTime);
+}
+
+GLuint loadTextureImage(char* texturePath) {
+    int width, height, nrChannels;
+    unsigned char* data = stbi_load(texturePath, &width, &height, &nrChannels, 0);
+    if (data == NULL) {
+        printf("failed to load texture: %s\n", texturePath);
+    }
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    if (nrChannels == 1) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, data);
+    } else if (nrChannels == 3) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    } else if (nrChannels == 4) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    }
+    glGenerateMipmap(GL_TEXTURE_2D);
+    stbi_image_free(data);
+
+    return textureID;
 }
 
 int main(int argc, char* argv[]) {
@@ -132,34 +168,53 @@ int main(int argc, char* argv[]) {
     GLint material_specular = glGetUniformLocation(program, "material.specular");
     GLint material_shininess = glGetUniformLocation(program, "material.shininess");
 
-    ChunkSubMesh chunkSubMesh = {};
-    BlockMesh blockMesh = {0, 0, 0};
+    GLuint dirt = loadTextureImage("../minecraft/textures/block/dirt.png");
+    GLuint grass_block_top = loadTextureImage("../minecraft/textures/block/grass_block_top.png");
 
-    BlockModelElement element = {.from = {0, 0, 0}, .to = {16, 16, 16}};
-    element.faces[0] = &(BlockModelElementFaceData){};
-    element.faces[1] = &(BlockModelElementFaceData){};
-    element.faces[2] = &(BlockModelElementFaceData){};
-    element.faces[3] = &(BlockModelElementFaceData){};
-    element.faces[4] = &(BlockModelElementFaceData){};
-    element.faces[5] = &(BlockModelElementFaceData){};
+    int modelElementCount = 1;
+    BlockModel blockModel = {malloc(sizeof(BlockModelElement) * modelElementCount), modelElementCount};
+    blockModel.fullBlock = true;
 
-    uint8_t rotateIndex[6] = {0, 1, 2, 3, 4, 5};
-    AddFace(&chunkSubMesh, &blockMesh, 0, 0b111111, &element, rotateIndex, 0, 0, false);
+    BlockModelElement* element = &blockModel.elements[0];
+    vec3_dup(element->from, (vec3){0, 0, 0});
+    vec3_dup(element->to, (vec3){16, 16, 16});
+    element->faceCount = 6;
+    element->faces[0] = &(BlockModelElementFaceData){.uv = {0, 0, 0, 1, 1, 1, 1, 0}, .textureId = dirt};
+    element->faces[1] = &(BlockModelElementFaceData){.uv = {0, 0, 0, 1, 1, 1, 1, 0}, .textureId = dirt};
+    element->faces[2] = &(BlockModelElementFaceData){.uv = {0, 0, 0, 1, 1, 1, 1, 0}, .textureId = grass_block_top};
+    element->faces[3] = &(BlockModelElementFaceData){.uv = {0, 0, 0, 1, 1, 1, 1, 0}, .textureId = dirt};
+    element->faces[4] = &(BlockModelElementFaceData){.uv = {0, 0, 0, 1, 1, 1, 1, 0}, .textureId = dirt};
+    element->faces[5] = &(BlockModelElementFaceData){.uv = {0, 0, 0, 1, 1, 1, 1, 0}, .textureId = dirt};
 
-    Mesh mesh;
-    createMesh(&mesh, chunkSubMesh.vertices_uv_normal, sizeof(float) * 8 * chunkSubMesh.faceCount * 4,
-               chunkSubMesh.indices, sizeof(float) * chunkSubMesh.faceCount * 6);
+    ChunkSub* chunkSub = chunkSub_new();
+
+    for (uint8_t x = 0; x < 16; x++) {
+        for (uint8_t y = 0; y < 16; y++) {
+            for (uint8_t z = 0; z < 16; z++) {
+                Block* block = (Block*)malloc(sizeof(Block));
+                block->xInChunk = x;
+                block->yInChunk = y;
+                block->zInChunk = z;
+                block->model = &blockModel;
+                chunkSub_setBlock(chunkSub, block);
+            }
+        }
+    }
+
+    chunkSub_initMeshVertices(chunkSub);
+    chunkSub_initMesh(chunkSub);
 
     cameraPos[0] = 0;
-    cameraPos[1] = 0;
+    cameraPos[1] = 2;
     cameraPos[2] = 0;
 
     mat4x4 model;
     mat4x4_identity_create(model);
 
     fpsCounterInit();
-    int moveSpeed = 2;
+    int moveSpeed = 5;
     while (!glfwWindowShouldClose(window)) {
+        glfwPollEvents();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         camera_updateViewMatrix();
@@ -189,8 +244,6 @@ int main(int argc, char* argv[]) {
         vec3_scale(v, v, deltaTime * moveSpeed);
         vec3_add(cameraPos, cameraPos, v);
 
-        // mat4x4_rotate_X(model, model, 0.001);
-
         // Render model
         glEnable(GL_DEPTH_TEST);
         glCullFace(GL_BACK);
@@ -201,28 +254,26 @@ int main(int argc, char* argv[]) {
         glUniformMatrix4fv(uView, 1, GL_FALSE, (float*)cameraViewMat);
         glUniform3fv(viewPos, 1, cameraPos);
 
-        // glActiveTexture(GL_TEXTURE0);
-        // glBindTexture(GL_TEXTURE_2D, 77);
-        // glUniform1i(material_diffuse, 0);
-        // glUniform1i(material_useDiffuse, 1);
-
-        glUniform3f(dirLight_direction, 0.1, -1, 0.1);
+        glUniform3f(dirLight_direction, 0.5, -1, 0.5);
         glUniform4f(dirLight_color, 1, 1, 1, 1);
-        glUniform1f(dirLight_ambient, 0.05);
-        glUniform1f(dirLight_diffuse, 0.9);
+        glUniform1f(dirLight_ambient, 0.1);
+        glUniform1f(dirLight_diffuse, 0.6);
+
+        glUniform1f(material_shininess, 0);
+        glUniformMatrix4fv(uModel, 1, GL_FALSE, (float*)model);
+
+        glActiveTexture(GL_TEXTURE0);
+        glUniform1i(material_useDiffuse, 1);
 
         glUniform4f(material_color, 1, 1, 1, 1);
-        glUniform1f(material_shininess, 1);
-        glUniformMatrix4fv(uModel, 1, GL_FALSE, (float*)model);
-        glBindVertexArray(mesh.vao);
-        glDrawElements(GL_TRIANGLES, mesh.indicesCount, GL_UNSIGNED_INT, NULL);
+        glUniform1i(material_diffuse, 0);
+        chunkSub_render(chunkSub);
 
         // Render UI
         glDisable(GL_DEPTH_TEST);
         glCullFace(GL_BACK);
         glFrontFace(GL_CW);
         ui_textDrawString(fpsInfo, 5, 20, 20);
-        
         char infoCache[128];
         sprintf(infoCache, "Camera pos: (%.2f, %.2f, %.2f), dir: (%.2f, %.2f, %.2f)",
                 cameraPos[0], cameraPos[1], cameraPos[2],
@@ -233,7 +284,6 @@ int main(int argc, char* argv[]) {
 
         glfwSwapBuffers(window);
         frameUpdate(fpsUpdate);
-        glfwPollEvents();
     }
 
     glfwDestroyWindow(window);

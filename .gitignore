@@ -3,5 +3,6 @@
 /*/build/
 /*/lib/
 /external_lib/
+minecraft/
 *.exe
 *.out

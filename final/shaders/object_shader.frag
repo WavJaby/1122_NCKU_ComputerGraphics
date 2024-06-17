@@ -54,27 +54,27 @@ vec4 CalcLightInternal(BaseLight light, vec3 lightDirection, vec3 normal) {
 	vec4 specularColor = vec4(0);
 
 	vec4 diffuseTexture;
-	if (material.useDiffuse) {
+	if(material.useDiffuse) {
 		diffuseTexture = texture(material.diffuse, fTexCoords);
 		ambientColor *= diffuseTexture;
 	}
 
-	if (diffuseFactor > 0) {
+	if(diffuseFactor > 0) {
 		diffuseColor = vec4(material.color.rgb * light.color.rgb, 1) * light.diffuseIntensity * diffuseFactor;
-		if (material.useDiffuse)
-		diffuseColor *= diffuseTexture;
+		if(material.useDiffuse)
+			diffuseColor *= diffuseTexture;
 
 		vec3 pixelToCamera = normalize(viewPos - fPos);
 		vec3 lightReflect = normalize(reflect(lightDirection, normal));
 		float apecularFactor = dot(pixelToCamera, lightReflect);
-		if (apecularFactor > 0) {
+		if(apecularFactor > 0 && material.shininess >= 1) {
 			apecularFactor = pow(apecularFactor, material.shininess);
 
 			specularColor = material.color * light.color * light.diffuseIntensity * apecularFactor;
-			if (material.useDiffuse)
-			specularColor.a *= diffuseTexture.a;
-			if (material.useSpecular)
-			specularColor *= texture(material.specular, fTexCoords);
+			if(material.useDiffuse)
+				specularColor.a *= diffuseTexture.a;
+			if(material.useSpecular)
+				specularColor *= texture(material.specular, fTexCoords);
 		}
 	}
 	return (ambientColor + diffuseColor + specularColor);
@@ -89,20 +89,20 @@ vec4 CalcPointLight(int index, vec3 normal) {
 	float dist = length(lightDirection);
 	lightDirection = normalize(lightDirection);
 	float attenuation = 1 / (pointLights[index].atten.constant +
-	pointLights[index].atten.linear * dist +
-	pointLights[index].atten.exp * dist * dist);
+		pointLights[index].atten.linear * dist +
+		pointLights[index].atten.exp * dist * dist);
 
 	vec4 color = CalcLightInternal(pointLights[index].base, lightDirection, normal);
 	color *= attenuation;
-	
+
 	return color;
 }
 
 void main() {
 	vec3 normal = normalize(fNormal);
 	vec4 totalLight = CalcDirectionalLight(normal);
-	
-	for (int i = 0; i < pointLightsLength; i++) {
+
+	for(int i = 0; i < pointLightsLength; i++) {
 		totalLight += CalcPointLight(i, normal);
 	}
 
