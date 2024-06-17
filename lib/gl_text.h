@@ -205,19 +205,19 @@ void ui_textDrawString(char* str, float x, float y, float charHeight) {
     }
 }
 
-uint32_t ui_calculateStringWidth(char* str, float charHeight) {
+uint32_t ui_textCalculateStringWidth(char* str, float charHeight) {
     float scale = charHeight / maxTextHeight;
     uint32_t width = 0;
     for (; *str; str++) {
         CharInfo* ch = &glGetChar(*str);
-        width += ch->advanceX * scale;
+        width += (ch->advanceX >> 6) * scale;
     }
     return width;
 }
 
-void ui_drawStringCenter(char* str, float x, float y, float charHeight) {
-    uint32_t width = ui_calculateStringWidth(str, charHeight);
-    ui_textDrawString(str, x - width / 2, y, charHeight);
+void ui_textDrawStringCenter(char* str, float x, float y, float charHeight) {
+    uint32_t width = ui_textCalculateStringWidth(str, charHeight);
+    ui_textDrawString(str, x - width / 2, y + charHeight / 2, charHeight);
 }
 
 #endif

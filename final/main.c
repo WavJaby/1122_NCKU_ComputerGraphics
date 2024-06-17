@@ -27,12 +27,13 @@
 #include "game/chunk/chunk_sub.h"
 #include "game/chunk/chunk.h"
 #include "game/block/block.h"
-// Game
-#include "game_manager.h"
 
 int windowWidth = 640;
 int windowHeight = 480;
 char windowTitle[] = "Final Project";
+
+// Game
+#include "game_manager.h"
 
 static void onKeyPress(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
@@ -52,7 +53,7 @@ void errorCallback(int error, const char* description) {
     fprintf(stderr, "Error: %s\n", description);
 }
 
-double lastMouseX = -1, lastMouseY = -1, mouseSensitivity = 10;
+double lastMouseX = -1, lastMouseY = -1, mouseSensitivity = 6;
 void onCursorMove(GLFWwindow* window, double xpos, double ypos) {
     if (lastMouseX == -1) {
         lastMouseX = xpos;
@@ -154,6 +155,10 @@ void onRender(GLFWwindow* window) {
     glDisable(GL_DEPTH_TEST);
     glCullFace(GL_BACK);
     glFrontFace(GL_CW);
+
+    gameManagerOnRenderUI();
+
+    // Debug UI
     ui_textDrawString(fpsInfo, 5, 20, 20);
     char infoCache[128];
     sprintf(infoCache, "Camera pos: (%.2f, %.2f, %.2f), dir: (%.2f, %.2f, %.2f)",
@@ -205,19 +210,23 @@ int main(int argc, char* argv[]) {
     // Init UI render
     ui_init();
 
-    onStart(window);
-
     fpsCounterInit();
+    uint64_t frame = 0;
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         camera_updateViewMatrix();
 
-        onRender(window);
+        // Init
+        if (frame == 1)
+            onStart(window);
+        else if (frame != 0)
+            onRender(window);
 
         glfwSwapBuffers(window);
         frameUpdate(fpsUpdate);
+        frame++;
     }
 
     glfwDestroyWindow(window);
