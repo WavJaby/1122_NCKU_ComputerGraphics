@@ -24,6 +24,11 @@ typedef struct ChunkSub {
     BlockMesh* chunkSubBlockMeshs[CHUNK_SIZE_X * CHUNK_SIZE_Z * CHUNK_SUB_Y_SIZE];
     // Map<GLuint TextureId, ChunkSubTextureMesh*>
     Map chunkSubTextureMeshMap;
+    
+    struct ChunkSub* left;
+    struct ChunkSub* right;
+    struct ChunkSub* front;
+    struct ChunkSub* back;
 } ChunkSub;
 
 ChunkSub* chunkSub_new() {
@@ -158,12 +163,12 @@ void chunkSub_initMeshVertices(ChunkSub* chunkSub) {
                 // Block* front = z == 15 ? (cullFront ? null : frontChunk?._chunkBlock[index]?[x, y, 0]) : _chunkBlock[index][x, y, z + 1];
                 // Block* back = z == 0 ? (cullBack ? null : backChunk?._chunkBlock[index]?[x, y, 15]) : _chunkBlock[index][x, y, z - 1];
 
-                Block* right = x == 15 ? NULL : chunkSub->chunkSubBlocks[getBlockIndex(x + 1, y, z)];
-                Block* left = x == 0 ? NULL : chunkSub->chunkSubBlocks[getBlockIndex(x - 1, y, z)];
+                Block* right = x == 15 ? chunkSub->right->chunkSubBlocks[getBlockIndex(0, y, z)] : chunkSub->chunkSubBlocks[getBlockIndex(x + 1, y, z)];
+                Block* left = x == 0 ? chunkSub->left->chunkSubBlocks[getBlockIndex(CHUNK_SIZE_X, y, z)] : chunkSub->chunkSubBlocks[getBlockIndex(x - 1, y, z)];
                 Block* top = y == 15 ? NULL : chunkSub->chunkSubBlocks[getBlockIndex(x, y + 1, z)];
                 Block* bottom = y == 0 ? NULL : chunkSub->chunkSubBlocks[getBlockIndex(x, y - 1, z)];
-                Block* front = z == 15 ? NULL : chunkSub->chunkSubBlocks[getBlockIndex(x, y, z + 1)];
-                Block* back = z == 0 ? NULL : chunkSub->chunkSubBlocks[getBlockIndex(x, y, z - 1)];
+                Block* front = z == 15 ? chunkSub->front->chunkSubBlocks[getBlockIndex(x, y, 0)] : chunkSub->chunkSubBlocks[getBlockIndex(x, y, z + 1)];
+                Block* back = z == 0 ? chunkSub->back->chunkSubBlocks[getBlockIndex(x, y, CHUNK_SIZE_Z)] : chunkSub->chunkSubBlocks[getBlockIndex(x, y, z - 1)];
 
                 if (!block) continue;
                 uint8_t* faces = malloc(sizeof(uint8_t) * block->model->elementsLen);
@@ -183,7 +188,7 @@ void chunkSub_initMesh(ChunkSub* chunkSub) {
         createMesh(chunkSubTextureMesh->mesh,
                    chunkSubTextureMesh->vertices_uv_normal, sizeof(float) * chunkSubTextureMesh->faceCount * 32,
                    chunkSubTextureMesh->indices, sizeof(uint32_t) * chunkSubTextureMesh->faceCount * 6);
-        printf("Init mesh: %u\n", chunkSubTextureMesh->texture.textureId);
+        // printf("Init mesh: %u\n", chunkSubTextureMesh->texture.textureId);
     }
 }
 

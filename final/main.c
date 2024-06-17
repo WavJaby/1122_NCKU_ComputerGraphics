@@ -125,7 +125,28 @@ float terrain(int x, int y, float size) {
 
     // Normalize
     val = (val + 1) * 0.5f;
+    return val;
 }
+
+typedef struct ChunkCoord {
+    int x, z;
+} ChunkCoord;
+
+bool chunkCoordEquals(void* a, void* b) {
+    return ((ChunkCoord*)a)->x == ((ChunkCoord*)b)->x &&
+           ((ChunkCoord*)a)->z == ((ChunkCoord*)b)->z;
+}
+uint32_t chunkCoordHash(void* a) {
+    return ((ChunkCoord*)a)->x + ((ChunkCoord*)a)->z << 16;
+}
+const NodeInfo chunkCoordInfo = {
+    chunkCoordEquals,
+    chunkCoordHash,
+    NULL,
+    WJCL_HASH_MAP_FREE_KEY,
+};
+// Map<ChunkCoord*, ChunkSub*>
+Map chunks = map_create(chunkCoordInfo);
 
 int main(int argc, char* argv[]) {
     printf("Program start\n");
@@ -223,37 +244,80 @@ int main(int argc, char* argv[]) {
     element->faces[4] = &(BlockModelElementFaceData){.uv = {0, 0, 0, 1, 1, 1, 1, 0}, .texture = dirt};
     element->faces[5] = &(BlockModelElementFaceData){.uv = {0, 0, 0, 1, 1, 1, 1, 0}, .texture = dirt};
 
-    ChunkSub* chunkSub = chunkSub_new();
+    for (int cx = -21; cx < 21; cx++) {
+        for (int cz = -21; cz < 21; cz++) {
+            ChunkCoord* coord = malloc(sizeof(ChunkCoord));
+            coord->x = cx;
+            coord->z = cz;
+            ChunkSub* chunkSub = chunkSub_new();
+            chunkSub->chunkX = cx;
+            chunkSub->chunkZ = cz;
+            chunkSub->chunkY = 0;
+            map_putpp(&chunks, coord, chunkSub);
 
-    for (uint8_t x = 0; x < 16; x++) {
-        for (uint8_t z = 0; z < 16; z++) {
-            int h = terrain(x, z, 200) * 16 + 1;
-            printf("%.2f ", h);
+            ChunkCoord coordNext = {cx - 1, cz};
+            ChunkSub* left = (ChunkSub*)map_get(&chunks, &coordNext);
+            if (left) {
+                left->right = chunkSub;
+                chunkSub->left = left;
+            }
+            coordNext.x = cx + 1;
+            ChunkSub* right = (ChunkSub*)map_get(&chunks, &coordNext);
+            if (right) {
+                right->left = chunkSub;
+                chunkSub->right = right;
+            }
+            coordNext.x = cx;
+            coordNext.z = cz + 1;
+            ChunkSub* front = (ChunkSub*)map_get(&chunks, &coordNext);
+            if (front) {
+                front->back = chunkSub;
+                chunkSub->front = front;
+            }
+            coordNext.z = cz - 1;
+            ChunkSub* back = (ChunkSub*)map_get(&chunks, &coordNext);
+            if (back) {
+                back->front = chunkSub;
+                chunkSub->back = back;
+            }
 
-            for (uint8_t y = 0; y < h; y++) {
-                Block* block = (Block*)malloc(sizeof(Block));
-                block->xInChunk = x;
-                block->yInChunk = y;
-                block->zInChunk = z;
-                block->model = &blockModel;
-                chunkSub_setBlock(chunkSub, block);
+            // Create chunk blocks
+            int xOff = cx * CHUNK_SIZE_X + 65535, zOff = cz * CHUNK_SIZE_Z + 65535;
+            for (uint8_t x = 0; x < 16; x++) {
+                for (uint8_t z = 0; z < 16; z++) {
+                    int h = terrain(xOff + x, zOff + z, 100) * 16 + 1;
+
+                    for (uint8_t y = 0; y < h; y++) {
+                        Block* block = (Block*)malloc(sizeof(Block));
+                        block->xInChunk = x;
+                        block->yInChunk = y;
+                        block->zInChunk = z;
+                        block->model = &blockModel;
+                        chunkSub_setBlock(chunkSub, block);
+                    }
+                }
             }
         }
-        printf("\n");
     }
 
-    chunkSub_initMeshVertices(chunkSub);
-    chunkSub_initMesh(chunkSub);
+    // Init chunk mesh
+    for (int cx = -20; cx < 20; cx++) {
+        for (int cz = -20; cz < 20; cz++) {
+            ChunkCoord coordNext = {cx, cz};
+            ChunkSub* chunkSub = (ChunkSub*)map_get(&chunks, &coordNext);
+            chunkSub_initMeshVertices(chunkSub);
+            chunkSub_initMesh(chunkSub);
+        }
+    }
 
     cameraPos[0] = 0;
     cameraPos[1] = 2;
     cameraPos[2] = 0;
 
     mat4x4 model;
-    mat4x4_identity_create(model);
 
     fpsCounterInit();
-    int moveSpeed = 5;
+    int moveSpeed = 50;
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -295,18 +359,27 @@ int main(int argc, char* argv[]) {
         glUniformMatrix4fv(uView, 1, GL_FALSE, (float*)cameraViewMat);
         glUniform3fv(viewPos, 1, cameraPos);
 
-        glUniform3f(dirLight_direction, 0.5, -1, 0.5);
+        vec3 lightDir = {0.5, -1, 0.5};
+        vec3_norm(lightDir, lightDir);
+        glUniform3fv(dirLight_direction, 1, (const GLfloat*)lightDir);
         glUniform4f(dirLight_color, 1, 1, 1, 1);
         glUniform1f(dirLight_ambient, 0.1);
-        glUniform1f(dirLight_diffuse, 0.6);
+        glUniform1f(dirLight_diffuse, 0.8);
 
         glUniform1f(material_shininess, 0);
-        glUniformMatrix4fv(uModel, 1, GL_FALSE, (float*)model);
 
         glActiveTexture(GL_TEXTURE0);
         glUniform1i(material_useDiffuse, 1);
 
-        chunkSub_render(chunkSub, material_color, material_diffuse, material_singleChannel);
+        // Render chunks
+        map_entries(&chunks, entries) {
+            ChunkSub* chunkSub = (ChunkSub*)entries->value;
+            ChunkCoord* chunkCoord = (ChunkCoord*)entries->key;
+            mat4x4_translate_create(model, chunkCoord->x * CHUNK_SIZE_X, 0, chunkCoord->z * CHUNK_SIZE_Z);
+            glUniformMatrix4fv(uModel, 1, GL_FALSE, (float*)model);
+
+            chunkSub_render(chunkSub, material_color, material_diffuse, material_singleChannel);
+        }
 
         // Render UI
         glDisable(GL_DEPTH_TEST);

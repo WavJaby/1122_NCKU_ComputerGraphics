@@ -28,7 +28,7 @@ typedef struct ChunkSubTextureMesh {
     vertices[index + 7] = nz;          \
     index += 8;
 
-#define GROWTH_FACTOR 2
+#define GROWTH_FACTOR 4
 
 /**
  * @brief
@@ -68,7 +68,7 @@ void AddFace(ChunkSubTextureMesh* chunkSubMesh, BlockMesh* blockMesh, int elemen
 
         size_t newIndicesSize = chunkSubMesh->maxFaceSize * 6;
         chunkSubMesh->indices = realloc(chunkSubMesh->indices, newIndicesSize * sizeof(int));
-        printf("%d\n", chunkSubMesh->maxFaceSize);
+        // printf("%d\n", chunkSubMesh->maxFaceSize);
     }
 
     uint32_t* _indices = chunkSubMesh->indices;
