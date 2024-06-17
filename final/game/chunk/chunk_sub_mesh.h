@@ -10,7 +10,7 @@ typedef struct ChunkSubTextureMesh {
 
     uint32_t maxFaceSize;
 
-    GLuint textureId;
+    MeshTexture texture;
     Mesh* mesh;
 } ChunkSubTextureMesh;
 

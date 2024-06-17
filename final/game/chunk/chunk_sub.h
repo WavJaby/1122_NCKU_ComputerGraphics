@@ -19,6 +19,7 @@ const NodeInfo info = {
 };
 
 typedef struct ChunkSub {
+    int chunkX, chunkY, chunkZ;
     Block* chunkSubBlocks[CHUNK_SIZE_X * CHUNK_SIZE_Z * CHUNK_SUB_Y_SIZE];
     BlockMesh* chunkSubBlockMeshs[CHUNK_SIZE_X * CHUNK_SIZE_Z * CHUNK_SUB_Y_SIZE];
     // Map<GLuint TextureId, ChunkSubTextureMesh*>
@@ -51,11 +52,12 @@ bool faceDataSameUV(float arr1[], float arr2[]) {
 }
 
 bool faceDataEquals(BlockModelElementFaceData* faceA, BlockModelElementFaceData* faceB) {
-    return faceA->textureId == faceB->textureId && faceDataSameUV(faceA->uv, faceB->uv);
+    return faceA->texture.textureId == faceB->texture.textureId &&
+           faceDataSameUV(faceA->uv, faceB->uv);
 }
 
-ChunkSubTextureMesh* chunkSub_getTextureMesh(ChunkSub* chunkSub, GLuint textureId) {
-    ChunkSubTextureMesh* chunkSubTextureMesh = (ChunkSubTextureMesh*)map_get(&chunkSub->chunkSubTextureMeshMap, &textureId);
+ChunkSubTextureMesh* chunkSub_getTextureMesh(ChunkSub* chunkSub, MeshTexture texture) {
+    ChunkSubTextureMesh* chunkSubTextureMesh = (ChunkSubTextureMesh*)map_get(&chunkSub->chunkSubTextureMeshMap, &texture.textureId);
     if (chunkSubTextureMesh == NULL) {
         chunkSubTextureMesh = malloc(sizeof(ChunkSubTextureMesh));
         chunkSubTextureMesh->faceCount = 0;
@@ -63,10 +65,10 @@ ChunkSubTextureMesh* chunkSub_getTextureMesh(ChunkSub* chunkSub, GLuint textureI
         chunkSubTextureMesh->indices = NULL;
         chunkSubTextureMesh->vertices_uv_normal = NULL;
 
-        chunkSubTextureMesh->textureId = textureId;
+        chunkSubTextureMesh->texture = texture;
         chunkSubTextureMesh->mesh = malloc(sizeof(Mesh));
 
-        map_putpp(&chunkSub->chunkSubTextureMeshMap, &chunkSubTextureMesh->textureId, chunkSubTextureMesh);
+        map_putpp(&chunkSub->chunkSubTextureMeshMap, &chunkSubTextureMesh->texture.textureId, chunkSubTextureMesh);
     }
     return chunkSubTextureMesh;
 }
@@ -109,8 +111,10 @@ void chunkSub_loadBlockMesh(ChunkSub* chunkSub, uint8_t* faces, Block* block) {
             remainingFace ^= faceMask;
             faceMask &= faces[i];
             if (faceMask == 0b0) continue;
+
+            ChunkSubTextureMesh* textureMesh = chunkSub_getTextureMesh(chunkSub, current->texture);
             // Add face to mesh
-            AddFace(chunkSub_getTextureMesh(chunkSub, current->textureId), &blockMesh, 0, faceMask, element, rotateIndex, 0, 0, false);
+            AddFace(textureMesh, &blockMesh, 0, faceMask, element, rotateIndex, 0, 0, false);
             // printf("Add face: %u\n", current->textureId);
         }
     }
@@ -179,18 +183,20 @@ void chunkSub_initMesh(ChunkSub* chunkSub) {
         createMesh(chunkSubTextureMesh->mesh,
                    chunkSubTextureMesh->vertices_uv_normal, sizeof(float) * chunkSubTextureMesh->faceCount * 32,
                    chunkSubTextureMesh->indices, sizeof(uint32_t) * chunkSubTextureMesh->faceCount * 6);
-        printf("Init mesh: %u\n", chunkSubTextureMesh->textureId);
+        printf("Init mesh: %u\n", chunkSubTextureMesh->texture.textureId);
     }
 }
 
-void chunkSub_render(ChunkSub* chunkSub) {
-    // glUniform4f(material_color, 1, 1, 1, 1);
+void chunkSub_render(ChunkSub* chunkSub, GLint material_color, GLint material_diffuse, GLint material_singleChannel) {
     map_entries(&chunkSub->chunkSubTextureMeshMap, entries) {
         ChunkSubTextureMesh* chunkSubTextureMesh = (ChunkSubTextureMesh*)entries->value;
         Mesh* mesh = chunkSubTextureMesh->mesh;
         // Set texture
-        glBindTexture(GL_TEXTURE_2D, chunkSubTextureMesh->textureId);
-        // glUniform1i(material_diffuse, 0);
+        glUniform4fv(material_color, 1, (const GLfloat*)&chunkSubTextureMesh->texture.color);
+        glBindTexture(GL_TEXTURE_2D, chunkSubTextureMesh->texture.textureId);
+        glUniform1i(material_diffuse, 0);
+        glUniform1i(material_singleChannel, chunkSubTextureMesh->texture.singleChannel);
+
         // Render mesh
         glBindVertexArray(mesh->vao);
         glDrawElements(GL_TRIANGLES, mesh->indicesCount, GL_UNSIGNED_INT, NULL);

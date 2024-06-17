@@ -1,6 +1,12 @@
 #ifndef __MESH_H__
 #define __MESH_H__
 
+typedef struct MeshTexture {
+    GLuint textureId;
+    bool singleChannel;
+    vec4 color;
+} MeshTexture;
+
 typedef struct mesh {
     GLuint vao, vbo, ibo;
     size_t indicesCount;

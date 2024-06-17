@@ -9,6 +9,7 @@ struct Material {
 	vec4 color;
 	bool useDiffuse;
 	sampler2D diffuse;
+	bool singleChannel;
 	bool useSpecular;
 	sampler2D specular;
 	float shininess;
@@ -56,6 +57,8 @@ vec4 CalcLightInternal(BaseLight light, vec3 lightDirection, vec3 normal) {
 	vec4 diffuseTexture;
 	if(material.useDiffuse) {
 		diffuseTexture = texture(material.diffuse, fTexCoords);
+		if(material.singleChannel)
+			diffuseTexture = vec4(diffuseTexture.r, diffuseTexture.r, diffuseTexture.r, 1);
 		ambientColor *= diffuseTexture;
 	}
 

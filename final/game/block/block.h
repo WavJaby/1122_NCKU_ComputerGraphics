@@ -2,7 +2,7 @@
 #define __BLOCK_H__
 
 typedef struct BlockModelElementFaceData {
-    GLuint textureId;
+    MeshTexture texture;
     // [x,y] * 4
     float uv[8];
 } BlockModelElementFaceData;

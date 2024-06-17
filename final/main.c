@@ -72,7 +72,7 @@ void fpsUpdate(float fps, float tick) {
     sprintf(fpsInfo, "fps:%7.2f, tick: %.2f, d: %.5f", fps, tick, deltaTime);
 }
 
-GLuint loadTextureImage(char* texturePath) {
+void loadTextureImage(MeshTexture* texture, char* texturePath) {
     int width, height, nrChannels;
     unsigned char* data = stbi_load(texturePath, &width, &height, &nrChannels, 0);
     if (data == NULL) {
@@ -96,7 +96,35 @@ GLuint loadTextureImage(char* texturePath) {
     glGenerateMipmap(GL_TEXTURE_2D);
     stbi_image_free(data);
 
-    return textureID;
+    texture->textureId = textureID;
+    texture->singleChannel = nrChannels == 1;
+}
+
+float terrain(int x, int y, float size) {
+    float val = 0;
+
+    float freq = 1;
+    float amp = 1;
+
+    // Sampling
+    for (int i = 0; i < 3; i++) {
+        val += perlin(x * freq / size, y * freq / size) * amp;
+
+        freq *= 2;
+        amp /= 2;
+    }
+
+    // Contrast
+    val *= 1.2;
+
+    // Clipping
+    if (val > 1.0f)
+        val = 1.0f;
+    else if (val < -1.0f)
+        val = -1.0f;
+
+    // Normalize
+    val = (val + 1) * 0.5f;
 }
 
 int main(int argc, char* argv[]) {
@@ -153,7 +181,6 @@ int main(int argc, char* argv[]) {
     GLint uModel = glGetUniformLocation(program, "uModel");
     GLint uView = glGetUniformLocation(program, "uView");
     GLint uProjection = glGetUniformLocation(program, "uProjection");
-
     GLint viewPos = glGetUniformLocation(program, "viewPos");
 
     GLint dirLight_direction = glGetUniformLocation(program, "dirLight.direction");
@@ -164,12 +191,22 @@ int main(int argc, char* argv[]) {
     GLint material_color = glGetUniformLocation(program, "material.color");
     GLint material_useDiffuse = glGetUniformLocation(program, "material.useDiffuse");
     GLint material_diffuse = glGetUniformLocation(program, "material.diffuse");
+    GLint material_singleChannel = glGetUniformLocation(program, "material.singleChannel");
     GLint material_useSpecular = glGetUniformLocation(program, "material.useSpecular");
     GLint material_specular = glGetUniformLocation(program, "material.specular");
     GLint material_shininess = glGetUniformLocation(program, "material.shininess");
 
-    GLuint dirt = loadTextureImage("../minecraft/textures/block/dirt.png");
-    GLuint grass_block_top = loadTextureImage("../minecraft/textures/block/grass_block_top.png");
+    MeshTexture dirt = {.color = {1, 1, 1, 1}};
+    loadTextureImage(&dirt, "../minecraft/textures/block/dirt.png");
+
+    MeshTexture grass_block_top = {.color = {99 / 255.f, 185 / 255.f, 39 / 255.f, 1}};
+    loadTextureImage(&grass_block_top, "../minecraft/textures/block/grass_block_top.png");
+
+    MeshTexture oak_log = {.color = {1, 1, 1, 1}};
+    loadTextureImage(&oak_log, "../minecraft/textures/block/oak_log.png");
+
+    MeshTexture oak_log_top = {.color = {1, 1, 1, 1}};
+    loadTextureImage(&oak_log_top, "../minecraft/textures/block/oak_log_top.png");
 
     int modelElementCount = 1;
     BlockModel blockModel = {malloc(sizeof(BlockModelElement) * modelElementCount), modelElementCount};
@@ -179,18 +216,21 @@ int main(int argc, char* argv[]) {
     vec3_dup(element->from, (vec3){0, 0, 0});
     vec3_dup(element->to, (vec3){16, 16, 16});
     element->faceCount = 6;
-    element->faces[0] = &(BlockModelElementFaceData){.uv = {0, 0, 0, 1, 1, 1, 1, 0}, .textureId = dirt};
-    element->faces[1] = &(BlockModelElementFaceData){.uv = {0, 0, 0, 1, 1, 1, 1, 0}, .textureId = dirt};
-    element->faces[2] = &(BlockModelElementFaceData){.uv = {0, 0, 0, 1, 1, 1, 1, 0}, .textureId = grass_block_top};
-    element->faces[3] = &(BlockModelElementFaceData){.uv = {0, 0, 0, 1, 1, 1, 1, 0}, .textureId = dirt};
-    element->faces[4] = &(BlockModelElementFaceData){.uv = {0, 0, 0, 1, 1, 1, 1, 0}, .textureId = dirt};
-    element->faces[5] = &(BlockModelElementFaceData){.uv = {0, 0, 0, 1, 1, 1, 1, 0}, .textureId = dirt};
+    element->faces[0] = &(BlockModelElementFaceData){.uv = {0, 0, 0, 1, 1, 1, 1, 0}, .texture = dirt};
+    element->faces[1] = &(BlockModelElementFaceData){.uv = {0, 0, 0, 1, 1, 1, 1, 0}, .texture = dirt};
+    element->faces[2] = &(BlockModelElementFaceData){.uv = {0, 0, 0, 1, 1, 1, 1, 0}, .texture = grass_block_top};
+    element->faces[3] = &(BlockModelElementFaceData){.uv = {0, 0, 0, 1, 1, 1, 1, 0}, .texture = dirt};
+    element->faces[4] = &(BlockModelElementFaceData){.uv = {0, 0, 0, 1, 1, 1, 1, 0}, .texture = dirt};
+    element->faces[5] = &(BlockModelElementFaceData){.uv = {0, 0, 0, 1, 1, 1, 1, 0}, .texture = dirt};
 
     ChunkSub* chunkSub = chunkSub_new();
 
     for (uint8_t x = 0; x < 16; x++) {
-        for (uint8_t y = 0; y < 16; y++) {
-            for (uint8_t z = 0; z < 16; z++) {
+        for (uint8_t z = 0; z < 16; z++) {
+            int h = terrain(x, z, 200) * 16 + 1;
+            printf("%.2f ", h);
+
+            for (uint8_t y = 0; y < h; y++) {
                 Block* block = (Block*)malloc(sizeof(Block));
                 block->xInChunk = x;
                 block->yInChunk = y;
@@ -199,6 +239,7 @@ int main(int argc, char* argv[]) {
                 chunkSub_setBlock(chunkSub, block);
             }
         }
+        printf("\n");
     }
 
     chunkSub_initMeshVertices(chunkSub);
@@ -265,9 +306,7 @@ int main(int argc, char* argv[]) {
         glActiveTexture(GL_TEXTURE0);
         glUniform1i(material_useDiffuse, 1);
 
-        glUniform4f(material_color, 1, 1, 1, 1);
-        glUniform1i(material_diffuse, 0);
-        chunkSub_render(chunkSub);
+        chunkSub_render(chunkSub, material_color, material_diffuse, material_singleChannel);
 
         // Render UI
         glDisable(GL_DEPTH_TEST);
