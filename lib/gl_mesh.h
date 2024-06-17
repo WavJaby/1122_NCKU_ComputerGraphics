@@ -1,11 +1,5 @@
-#ifndef __MESH_H__
-#define __MESH_H__
-
-typedef struct MeshTexture {
-    GLuint textureId;
-    bool singleChannel;
-    vec4 color;
-} MeshTexture;
+#ifndef __GL_MESH_H__
+#define __GL_MESH_H__
 
 typedef struct mesh {
     GLuint vao, vbo, ibo;

@@ -1,5 +1,4 @@
 #include "../block/block.h"
-#include "../../mesh.h"
 
 typedef struct ChunkSubTextureMesh {
     // x,y,z, u,v, x,y,z
@@ -10,7 +9,7 @@ typedef struct ChunkSubTextureMesh {
 
     uint32_t maxFaceSize;
 
-    MeshTexture texture;
+    Texture texture;
     Mesh* mesh;
 } ChunkSubTextureMesh;
 

@@ -1,7 +1,6 @@
 #include "chunk_settings.h"
 #include "chunk_sub_mesh.h"
 #include "../block/block.h"
-#include "../../mesh.h"
 
 #define getBlockIndex(x, y, z) ((x) + ((z) + (y) * CHUNK_SIZE_Z) * CHUNK_SIZE_X)
 
@@ -11,7 +10,7 @@ bool textureIdEquals(void* a, void* b) {
 uint32_t textureIdHash(void* a) {
     return *(uint32_t*)a;
 }
-const NodeInfo info = {
+const MapNodeInfo info = {
     textureIdEquals,
     textureIdHash,
     NULL,
@@ -61,7 +60,7 @@ bool faceDataEquals(BlockModelElementFaceData* faceA, BlockModelElementFaceData*
            faceDataSameUV(faceA->uv, faceB->uv);
 }
 
-ChunkSubTextureMesh* chunkSub_getTextureMesh(ChunkSub* chunkSub, MeshTexture texture) {
+ChunkSubTextureMesh* chunkSub_getTextureMesh(ChunkSub* chunkSub, Texture texture) {
     ChunkSubTextureMesh* chunkSubTextureMesh = (ChunkSubTextureMesh*)map_get(&chunkSub->chunkSubTextureMeshMap, &texture.textureId);
     if (chunkSubTextureMesh == NULL) {
         chunkSubTextureMesh = malloc(sizeof(ChunkSubTextureMesh));
@@ -89,7 +88,7 @@ void chunkSub_loadBlockMesh(ChunkSub* chunkSub, uint8_t* faces, Block* block) {
     BlockModel* blockModel = block->model;
 
     // Load each element in model
-    for (size_t i = 0; i < blockModel->elementsLen; i++) {
+    for (size_t i = 0; i < blockModel->elementsCount; i++) {
         BlockModelElement* element = &blockModel->elements[i];
 
         uint8_t addedFace = 0;
@@ -156,23 +155,16 @@ void chunkSub_initMeshVertices(ChunkSub* chunkSub) {
         for (uint8_t y = 0; y < 16; y++) {
             for (uint8_t z = 0; z < 16; z++) {
                 Block* block = chunkSub->chunkSubBlocks[getBlockIndex(x, y, z)];
-                // Block* right = x == 15 ? (cullRight ? null : rightChunk?._chunkBlock[index]?[0, y, z]) : _chunkBlock[index][x + 1, y, z];
-                // Block* left = x == 0 ? (cullLeft ? null : leftChunk?._chunkBlock[index]?[15, y, z]) : _chunkBlock[index][x - 1, y, z];
-                // Block* top = y == 15 ? (index == _chunkBlock.Length - 1 ? null : _chunkBlock[index + 1]?[x, 0, z]) : _chunkBlock[index][x, y + 1, z];
-                // Block* bottom = y == 0 ? (index == 0 ? null : _chunkBlock[index - 1]?[x, 15, z]) : _chunkBlock[index][x, y - 1, z];
-                // Block* front = z == 15 ? (cullFront ? null : frontChunk?._chunkBlock[index]?[x, y, 0]) : _chunkBlock[index][x, y, z + 1];
-                // Block* back = z == 0 ? (cullBack ? null : backChunk?._chunkBlock[index]?[x, y, 15]) : _chunkBlock[index][x, y, z - 1];
-
                 Block* right = x == 15 ? chunkSub->right->chunkSubBlocks[getBlockIndex(0, y, z)] : chunkSub->chunkSubBlocks[getBlockIndex(x + 1, y, z)];
-                Block* left = x == 0 ? chunkSub->left->chunkSubBlocks[getBlockIndex(CHUNK_SIZE_X, y, z)] : chunkSub->chunkSubBlocks[getBlockIndex(x - 1, y, z)];
+                Block* left = x == 0 ? chunkSub->left->chunkSubBlocks[getBlockIndex(CHUNK_SIZE_X - 1, y, z)] : chunkSub->chunkSubBlocks[getBlockIndex(x - 1, y, z)];
                 Block* top = y == 15 ? NULL : chunkSub->chunkSubBlocks[getBlockIndex(x, y + 1, z)];
                 Block* bottom = y == 0 ? NULL : chunkSub->chunkSubBlocks[getBlockIndex(x, y - 1, z)];
                 Block* front = z == 15 ? chunkSub->front->chunkSubBlocks[getBlockIndex(x, y, 0)] : chunkSub->chunkSubBlocks[getBlockIndex(x, y, z + 1)];
-                Block* back = z == 0 ? chunkSub->back->chunkSubBlocks[getBlockIndex(x, y, CHUNK_SIZE_Z)] : chunkSub->chunkSubBlocks[getBlockIndex(x, y, z - 1)];
+                Block* back = z == 0 ? chunkSub->back->chunkSubBlocks[getBlockIndex(x, y, CHUNK_SIZE_Z - 1)] : chunkSub->chunkSubBlocks[getBlockIndex(x, y, z - 1)];
 
                 if (!block) continue;
-                uint8_t* faces = malloc(sizeof(uint8_t) * block->model->elementsLen);
-                for (size_t i = 0; i < block->model->elementsLen; i++) {
+                uint8_t* faces = malloc(sizeof(uint8_t) * block->model->elementsCount);
+                for (size_t i = 0; i < block->model->elementsCount; i++) {
                     faces[i] = deleteDuplicateFace(block->model, right, left, top, bottom, front, back, i, -1);
                 }
                 chunkSub_loadBlockMesh(chunkSub, faces, block);
@@ -192,15 +184,15 @@ void chunkSub_initMesh(ChunkSub* chunkSub) {
     }
 }
 
-void chunkSub_render(ChunkSub* chunkSub, GLint material_color, GLint material_diffuse, GLint material_singleChannel) {
+void chunkSub_render(ChunkSub* chunkSub) {
     map_entries(&chunkSub->chunkSubTextureMeshMap, entries) {
         ChunkSubTextureMesh* chunkSubTextureMesh = (ChunkSubTextureMesh*)entries->value;
         Mesh* mesh = chunkSubTextureMesh->mesh;
         // Set texture
-        glUniform4fv(material_color, 1, (const GLfloat*)&chunkSubTextureMesh->texture.color);
+        glUniform4fv(objectShader.material_color, 1, (const GLfloat*)&chunkSubTextureMesh->texture.color);
         glBindTexture(GL_TEXTURE_2D, chunkSubTextureMesh->texture.textureId);
-        glUniform1i(material_diffuse, 0);
-        glUniform1i(material_singleChannel, chunkSubTextureMesh->texture.singleChannel);
+        glUniform1i(objectShader.material_diffuse, 0);
+        glUniform1i(objectShader.material_singleChannel, chunkSubTextureMesh->texture.singleChannel);
 
         // Render mesh
         glBindVertexArray(mesh->vao);
