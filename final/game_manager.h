@@ -316,6 +316,21 @@ void* generateWorld(void* data) {
                             chunkSub_setBlock(chunkSub, block);
                         }
                     }
+                    // Plant tree
+                    float treeProp = terrain(xOff + x, zOff + z, 1.5f);
+                    if (treeProp < 0.1 && (int)h > 4) {
+                        for (int i = 0; i < 5; i++) {
+                            int y = (int)h + 1 + i;
+                            Block* block = (Block*)malloc(sizeof(Block));
+                            block->xInChunk = x;
+                            block->yInChunk = y & CHUNK_SUB_Y_SIZE_MASK;
+                            block->zInChunk = z;
+                            block->model = gameManager.oakLogBlockModel;
+
+                            ChunkSub* chunkSub = chunk->chunkSub[chunk_getChunkSubIndexByBlockY(y)];
+                            chunkSub_setBlock(chunkSub, block);
+                        }
+                    }
                 }
             }
         }

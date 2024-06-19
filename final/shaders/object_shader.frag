@@ -96,7 +96,7 @@ vec4 CalcLightInternal(BaseLight light, vec3 lightDirection, vec3 normal) {
 	}
 
 	// float bias = max(0.005 * (1.0 - dot(normal, lightDirection)), 0.0005);  
-	float shadow = ShadowCalculation(fPosLightSpace, 0.0004);
+	float shadow = ShadowCalculation(fPosLightSpace, 0.00004);
 	return (ambientColor + (1.0 - shadow) * (diffuseColor + specularColor)) * diffuseTexture;
 }
 
