@@ -7,7 +7,7 @@
 #ifdef _WIN32
 #define FONT_FILE_NAME "C:/Windows/Fonts/Calibri.ttf"
 #else
-#define FONT_FILE_NAME "/usr/share/fonts/truetype/noto/NotoMono-Regular.ttf"
+#define FONT_FILE_NAME "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
 #endif
 
 #define glGetChar(char) glTextChars[char - 32]

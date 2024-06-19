@@ -179,9 +179,8 @@ LINMATH_H_FUNC void mat4x4_mul(mat4x4 M, mat4x4 const a, mat4x4 const b) {
     }
 }
 LINMATH_H_FUNC void mat4x4_mul_vec4(vec4 r, mat4x4 const M, vec4 const v) {
-    int i, j;
     float v0 = v[0], v1 = v[1], v2 = v[2], v3 = v[3];
-    for (j = 0; j < 4; ++j) {
+    for (int j = 0; j < 4; ++j) {
         r[j] = M[0][j] * v0 +
                M[1][j] * v1 +
                M[2][j] * v2 +

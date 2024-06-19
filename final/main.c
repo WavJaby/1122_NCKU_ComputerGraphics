@@ -83,7 +83,7 @@ void fpsUpdate(float fps, float tick) {
 }
 
 vec3 lightDir = {0, -1.0, 0.5};
-float lightAngle = 0;
+float lightAngle = 30;
 mat4x4 lightSpaceMatrix;
 GLuint depthMap;
 
@@ -105,7 +105,7 @@ void onStart(GLFWwindow* window) {
     cameraPos[1] = 100;
     cameraPos[2] = 0;
 
-    cameraAngle[0] = 45;
+    cameraAngle[0] = 30;
 
     // Calculate light
     vec3_norm(lightDir, lightDir);
@@ -172,7 +172,7 @@ void onRender(GLFWwindow* window) {
 
     glUniform3fv(objectShader.dirLight_direction, 1, (const GLfloat*)lightDir);
     glUniform4f(objectShader.dirLight_color, 1, 1, 1, 1);
-    glUniform1f(objectShader.dirLight_ambient, 0.1);
+    glUniform1f(objectShader.dirLight_ambient, 0.3);
     glUniform1f(objectShader.dirLight_diffuse, 0.8);
 
     glUniform1f(objectShader.material_shininess, 0);
