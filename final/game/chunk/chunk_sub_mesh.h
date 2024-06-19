@@ -128,10 +128,10 @@ void AddFace(ChunkSubTextureMesh* chunkSubMesh, BlockMesh* blockMesh, int elemen
         _indices[indicesLen++] = vertexIndex + 3;
         vertexIndex += 4;
         float x = blockMesh->x + to__[0];
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[0], faceData->uv[1], x, blockMesh->y + from[1], blockMesh->z + from[2], 1, 0, 0);
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[2], faceData->uv[3], x, blockMesh->y + to__[1], blockMesh->z + from[2], 1, 0, 0);
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[4], faceData->uv[5], x, blockMesh->y + to__[1], blockMesh->z + to__[2], 1, 0, 0);
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[6], faceData->uv[7], x, blockMesh->y + from[1], blockMesh->z + to__[2], 1, 0, 0);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[0], 1 - faceData->uv[1], x, blockMesh->y + from[1], blockMesh->z + from[2], 1, 0, 0);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[2], 1 - faceData->uv[3], x, blockMesh->y + to__[1], blockMesh->z + from[2], 1, 0, 0);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[4], 1 - faceData->uv[5], x, blockMesh->y + to__[1], blockMesh->z + to__[2], 1, 0, 0);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[6], 1 - faceData->uv[7], x, blockMesh->y + from[1], blockMesh->z + to__[2], 1, 0, 0);
         // if (rotate)
         //     RotateFace(cnt, center, rotation, element->Rotation.Rescale);
         // if (blockRotate)
@@ -156,10 +156,10 @@ void AddFace(ChunkSubTextureMesh* chunkSubMesh, BlockMesh* blockMesh, int elemen
         _indices[indicesLen++] = vertexIndex + 3;
         vertexIndex += 4;
         float x = blockMesh->x + from[0];
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[0], faceData->uv[1], x, blockMesh->y + from[1], blockMesh->z + to__[2], -1, 0, 0);
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[2], faceData->uv[3], x, blockMesh->y + to__[1], blockMesh->z + to__[2], -1, 0, 0);
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[4], faceData->uv[5], x, blockMesh->y + to__[1], blockMesh->z + from[2], -1, 0, 0);
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[6], faceData->uv[7], x, blockMesh->y + from[1], blockMesh->z + from[2], -1, 0, 0);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[0], 1 - faceData->uv[1], x, blockMesh->y + from[1], blockMesh->z + to__[2], -1, 0, 0);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[2], 1 - faceData->uv[3], x, blockMesh->y + to__[1], blockMesh->z + to__[2], -1, 0, 0);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[4], 1 - faceData->uv[5], x, blockMesh->y + to__[1], blockMesh->z + from[2], -1, 0, 0);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[6], 1 - faceData->uv[7], x, blockMesh->y + from[1], blockMesh->z + from[2], -1, 0, 0);
         // if (rotate)
         //     RotateFace(cnt, center, rotation, element->Rotation.Rescale);
         // if (blockRotate)
@@ -184,10 +184,10 @@ void AddFace(ChunkSubTextureMesh* chunkSubMesh, BlockMesh* blockMesh, int elemen
         _indices[indicesLen++] = vertexIndex + 3;
         vertexIndex += 4;
         float y = blockMesh->y + to__[1];
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[0], faceData->uv[1], blockMesh->x + from[0], y, blockMesh->z + from[2], 0, 1, 0);
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[2], faceData->uv[3], blockMesh->x + from[0], y, blockMesh->z + to__[2], 0, 1, 0);
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[4], faceData->uv[5], blockMesh->x + to__[0], y, blockMesh->z + to__[2], 0, 1, 0);
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[6], faceData->uv[7], blockMesh->x + to__[0], y, blockMesh->z + from[2], 0, 1, 0);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[0], 1 - faceData->uv[1], blockMesh->x + from[0], y, blockMesh->z + from[2], 0, 1, 0);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[2], 1 - faceData->uv[3], blockMesh->x + from[0], y, blockMesh->z + to__[2], 0, 1, 0);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[4], 1 - faceData->uv[5], blockMesh->x + to__[0], y, blockMesh->z + to__[2], 0, 1, 0);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[6], 1 - faceData->uv[7], blockMesh->x + to__[0], y, blockMesh->z + from[2], 0, 1, 0);
         // if (uvLock)
         //     RotateTexture(cnt, -rotY);
         // if (rotate)
@@ -214,10 +214,10 @@ void AddFace(ChunkSubTextureMesh* chunkSubMesh, BlockMesh* blockMesh, int elemen
         _indices[indicesLen++] = vertexIndex + 3;
         vertexIndex += 4;
         float y = blockMesh->y + from[1];
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[4], faceData->uv[5], blockMesh->x + to__[0], y, blockMesh->z + from[2], 0, -1, 0);
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[6], faceData->uv[7], blockMesh->x + to__[0], y, blockMesh->z + to__[2], 0, -1, 0);
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[0], faceData->uv[1], blockMesh->x + from[0], y, blockMesh->z + to__[2], 0, -1, 0);
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[2], faceData->uv[3], blockMesh->x + from[0], y, blockMesh->z + from[2], 0, -1, 0);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[4], 1 - faceData->uv[5], blockMesh->x + to__[0], y, blockMesh->z + from[2], 0, -1, 0);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[6], 1 - faceData->uv[7], blockMesh->x + to__[0], y, blockMesh->z + to__[2], 0, -1, 0);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[0], 1 - faceData->uv[1], blockMesh->x + from[0], y, blockMesh->z + to__[2], 0, -1, 0);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[2], 1 - faceData->uv[3], blockMesh->x + from[0], y, blockMesh->z + from[2], 0, -1, 0);
         // if (uvLock)
         //     RotateTexture(cnt, -rotY);
         // if (rotate)
@@ -244,10 +244,10 @@ void AddFace(ChunkSubTextureMesh* chunkSubMesh, BlockMesh* blockMesh, int elemen
         _indices[indicesLen++] = vertexIndex + 3;
         vertexIndex += 4;
         float z = blockMesh->z + to__[2];
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[0], faceData->uv[1], blockMesh->x + to__[0], blockMesh->y + from[1], z, 0, 0, 1);
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[2], faceData->uv[3], blockMesh->x + to__[0], blockMesh->y + to__[1], z, 0, 0, 1);
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[4], faceData->uv[5], blockMesh->x + from[0], blockMesh->y + to__[1], z, 0, 0, 1);
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[6], faceData->uv[7], blockMesh->x + from[0], blockMesh->y + from[1], z, 0, 0, 1);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[0], 1 - faceData->uv[1], blockMesh->x + to__[0], blockMesh->y + from[1], z, 0, 0, 1);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[2], 1 - faceData->uv[3], blockMesh->x + to__[0], blockMesh->y + to__[1], z, 0, 0, 1);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[4], 1 - faceData->uv[5], blockMesh->x + from[0], blockMesh->y + to__[1], z, 0, 0, 1);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[6], 1 - faceData->uv[7], blockMesh->x + from[0], blockMesh->y + from[1], z, 0, 0, 1);
         // if (rotate)
         //     RotateFace(cnt, center, rotation, element->Rotation.Rescale);
         // if (blockRotate)
@@ -271,10 +271,10 @@ void AddFace(ChunkSubTextureMesh* chunkSubMesh, BlockMesh* blockMesh, int elemen
         _indices[indicesLen++] = vertexIndex + 2;
         _indices[indicesLen] = vertexIndex + 3;
         float z = blockMesh->z + from[2];
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[0], faceData->uv[1], blockMesh->x + from[0], blockMesh->y + from[1], z, 0, 0, -1);
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[2], faceData->uv[3], blockMesh->x + from[0], blockMesh->y + to__[1], z, 0, 0, -1);
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[4], faceData->uv[5], blockMesh->x + to__[0], blockMesh->y + to__[1], z, 0, 0, -1);
-        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[6], faceData->uv[7], blockMesh->x + to__[0], blockMesh->y + from[1], z, 0, 0, -1);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[0], 1 - faceData->uv[1], blockMesh->x + from[0], blockMesh->y + from[1], z, 0, 0, -1);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[2], 1 - faceData->uv[3], blockMesh->x + from[0], blockMesh->y + to__[1], z, 0, 0, -1);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[4], 1 - faceData->uv[5], blockMesh->x + to__[0], blockMesh->y + to__[1], z, 0, 0, -1);
+        setVertexData(_vertices_uv_normal, verticesSize, faceData->uv[6], 1 - faceData->uv[7], blockMesh->x + to__[0], blockMesh->y + from[1], z, 0, 0, -1);
         // if (rotate)
         //     RotateFace(cnt, center, rotation, element->Rotation.Rescale);
         // if (blockRotate)

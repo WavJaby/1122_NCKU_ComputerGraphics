@@ -23,17 +23,20 @@
 #include "gl_texture.h"
 #include "gl_mesh.h"
 // Project lib
+#include "depth_shader.h"
 #include "object_shader.h"
 #include "game/chunk/chunk_sub.h"
 #include "game/chunk/chunk.h"
 #include "game/block/block.h"
 
-int windowWidth = 640;
-int windowHeight = 480;
+int windowWidth = 1280;
+int windowHeight = 720;
 char windowTitle[] = "Final Project";
 
 // Game
 #include "game_manager.h"
+
+const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
 
 static void onKeyPress(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
@@ -79,8 +82,14 @@ void fpsUpdate(float fps, float tick) {
     sprintf(fpsInfo, "fps:%7.2f, tick: %.2f, d: %.5f", fps, tick, deltaTime);
 }
 
+vec3 lightDir = {0, -1.0, 0.5};
+float lightAngle = 0;
+mat4x4 lightSpaceMatrix;
+GLuint depthMap;
+
 void onStart(GLFWwindow* window) {
     objectShaderInit();
+    depthShaderInit();
 
     // Windows dont fire FramebufferSizeCallback at start
     camera_windowSizeUpdate(windowWidth, windowHeight);
@@ -97,6 +106,30 @@ void onStart(GLFWwindow* window) {
     cameraPos[2] = 0;
 
     cameraAngle[0] = 45;
+
+    // Calculate light
+    vec3_norm(lightDir, lightDir);
+    lightDir[0] = cos(lightAngle * M_DEG_2_RAD);
+}
+
+void onRenderShadow(GLFWwindow* window) {
+    float near_plane = 0.f, far_plane = 1000.f;
+    mat4x4 lightProjection;
+    mat4x4_ortho(lightProjection, -50.0f, 50.0f, -50.0f, 50.0f, near_plane, far_plane);
+
+    vec3 origin = {cameraPos[0], cameraPos[1], cameraPos[2]};
+    vec3 lightPos;
+    vec3_scale(lightPos, lightDir, -1);
+    vec3_add(lightPos, lightPos, origin);
+    mat4x4 lightView;
+    mat4x4_look_at(lightView, lightPos, origin, (vec3){0, 1, 0});
+
+    mat4x4_mul(lightSpaceMatrix, lightProjection, lightView);
+
+    glUseProgram(depthShader.program);
+    glUniformMatrix4fv(depthShader.uLlightSpaceMatrix, 1, GL_FALSE, (float*)lightSpaceMatrix);
+
+    gameManagerOnRenderShadow();
 }
 
 void onRender(GLFWwindow* window) {
@@ -128,17 +161,15 @@ void onRender(GLFWwindow* window) {
     vec3_add(cameraPos, cameraPos, v);
 
     // Render model
-    glEnable(GL_DEPTH_TEST);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CCW);
-
     glUseProgram(objectShader.program);
     glUniformMatrix4fv(objectShader.uProjection, 1, GL_FALSE, (float*)cameraProjectionMat);
     glUniformMatrix4fv(objectShader.uView, 1, GL_FALSE, (float*)cameraViewMat);
-    glUniform3fv(objectShader.viewPos, 1, cameraPos);
+    glUniformMatrix4fv(objectShader.uLightSpaceMatrix, 1, GL_FALSE, (float*)lightSpaceMatrix);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glUniform1i(objectShader.uShadowMap, 1);
+    glUniform3fv(objectShader.uViewPos, 1, cameraPos);
 
-    vec3 lightDir = {0.5, -1, 0.5};
-    vec3_norm(lightDir, lightDir);
     glUniform3fv(objectShader.dirLight_direction, 1, (const GLfloat*)lightDir);
     glUniform4f(objectShader.dirLight_color, 1, 1, 1, 1);
     glUniform1f(objectShader.dirLight_ambient, 0.1);
@@ -146,7 +177,6 @@ void onRender(GLFWwindow* window) {
 
     glUniform1f(objectShader.material_shininess, 0);
 
-    glActiveTexture(GL_TEXTURE0);
     glUniform1i(objectShader.material_useDiffuse, 1);
 
     gameManagerOnRender();
@@ -165,6 +195,8 @@ void onRender(GLFWwindow* window) {
             cameraPos[0], cameraPos[1], cameraPos[2],
             cameraDir[0], cameraDir[1], cameraDir[2]);
     ui_textDrawString(infoCache, 5, 20 * 2, 20);
+
+    ui_drawTexture(depthMap, 0, 50, 200, 200, 0);
 
     glEnable(GL_DEPTH_TEST);
 }
@@ -207,6 +239,27 @@ int main(int argc, char* argv[]) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+    // Init depthMap
+    GLuint depthMapFBO;
+    glGenFramebuffers(1, &depthMapFBO);
+
+    glGenTextures(1, &depthMap);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+    // Init frame buffer
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     // Init UI render
     ui_init();
 
@@ -214,15 +267,28 @@ int main(int argc, char* argv[]) {
     uint64_t frame = 0;
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         camera_updateViewMatrix();
 
         // Init
         if (frame == 1)
             onStart(window);
-        else if (frame != 0)
+        else if (frame != 0) {
+            glEnable(GL_DEPTH_TEST);
+            glCullFace(GL_BACK);
+            glFrontFace(GL_CCW);
+            // Render shader scene
+            glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+            glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+            glClear(GL_DEPTH_BUFFER_BIT);
+            onRenderShadow(window);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            // Render scene
+            glViewport(0, 0, windowWidth, windowHeight);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glBindTexture(GL_TEXTURE_2D, depthMap);
             onRender(window);
+        }
 
         glfwSwapBuffers(window);
         frameUpdate(fpsUpdate);

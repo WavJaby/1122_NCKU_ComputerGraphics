@@ -4,7 +4,9 @@ typedef struct ObjectShader {
         uModel,
         uView,
         uProjection,
-        viewPos,
+        uLightSpaceMatrix,
+        uShadowMap,
+        uViewPos,
         dirLight_direction,
         dirLight_color,
         dirLight_ambient,
@@ -25,7 +27,9 @@ void objectShaderInit() {
     objectShader.uModel = glGetUniformLocation(program, "uModel");
     objectShader.uView = glGetUniformLocation(program, "uView");
     objectShader.uProjection = glGetUniformLocation(program, "uProjection");
-    objectShader.viewPos = glGetUniformLocation(program, "viewPos");
+    objectShader.uLightSpaceMatrix = glGetUniformLocation(program, "uLightSpaceMatrix");
+    objectShader.uShadowMap = glGetUniformLocation(program, "uShadowMap");
+    objectShader.uViewPos = glGetUniformLocation(program, "uViewPos");
 
     objectShader.dirLight_direction = glGetUniformLocation(program, "dirLight.direction");
     objectShader.dirLight_color = glGetUniformLocation(program, "dirLight.base.color");

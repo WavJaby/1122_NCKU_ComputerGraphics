@@ -164,7 +164,7 @@ void ui_windowSizeUpdate(int width, int height) {
     glUniformMatrix4fv(glTextProjection, 1, GL_FALSE, (float*)m);
 }
 
-void ui_textDrawChar(GLuint file, float x, float y, float w, float h, float angle) {
+void ui_drawTexture(GLuint textureId, float x, float y, float w, float h, float angle) {
     GLfloat box[4][4] = {
         {x, y, 0, 0},
         {x + w, y, 1, 0},
@@ -173,7 +173,7 @@ void ui_textDrawChar(GLuint file, float x, float y, float w, float h, float angl
     };
     glBindVertexArray(glTextVao);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, file);
+    glBindTexture(GL_TEXTURE_2D, textureId);
     glUniform1i(glTextTexture, 0);
 
     glBindBuffer(GL_ARRAY_BUFFER, glTextVbo);
@@ -199,7 +199,7 @@ void ui_textDrawString(char* str, float x, float y, float charHeight) {
         float h = ch->height * scale;
         // printf("%f, %f, %d, %d\n", xpos, ypos, ch->width, ch->height);
         // printf("%d, %d, %d\n", ch->width, ch->height - ch->bearingY, ch->advance >> 6);
-        ui_textDrawChar(ch->texId, xpos, ypos, w, h, 0.0);
+        ui_drawTexture(ch->texId, xpos, ypos, w, h, 0.0);
         x += (ch->advanceX >> 6) * scale;
         y += (ch->advanceY >> 6) * scale;
     }

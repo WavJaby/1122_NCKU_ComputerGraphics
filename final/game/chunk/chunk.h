@@ -22,6 +22,12 @@ Chunk* chunk_new(Map* chunks, int chunkX, int chunkZ) {
     chunk->chunkX = chunkX;
     chunk->chunkZ = chunkZ;
 
+    // Add chunk to map
+    ChunkCoord* coord = malloc(sizeof(ChunkCoord));
+    coord->x = chunkX;
+    coord->z = chunkZ;
+    map_putpp(chunks, coord, chunk);
+
     // Register chunk neighbor
     ChunkCoord coordNext = {chunkX - 1, chunkZ};
     Chunk* left = (Chunk*)map_get(chunks, &coordNext);
@@ -52,7 +58,7 @@ Chunk* chunk_new(Map* chunks, int chunkX, int chunkZ) {
     return chunk;
 }
 
-#define chunk_getChunkSubIndexByBlockY(y) (y >> CHUNK_SUB_Y_SIZE_SHIFT) - NEGTIVE_INDEX_HEIGHT
+#define chunk_getChunkSubIndexByBlockY(y) (((y) >> CHUNK_SUB_Y_SIZE_SHIFT) - NEGTIVE_INDEX_HEIGHT)
 struct ChunkSub* chunk_getChunkSubByBlockY(Chunk* chunk, int y) {
     return chunk->chunkSub[chunk_getChunkSubIndexByBlockY(y)];
 }

@@ -5,6 +5,8 @@ typedef struct GameManager {
     BlockModel* dirtBlockModel;
     BlockModel* stoneBlockModel;
     BlockModel* sandBlockModel;
+    BlockModel* oakLogBlockModel;
+    BlockModel* shortGrassBlockModel;
 } GameManager;
 GameManager gameManager = {};
 
@@ -23,8 +25,8 @@ Map chunks = map_create(chunkCoordEquals,
 
 void* generateWorld(void* data);
 
-int cx = -20;
-int cz = -20;
+int viewDistance = 20;
+int cx, cz;
 int state = 0;
 pthread_t worldLoadThread;
 
@@ -104,51 +106,120 @@ void gameManagerOnStart() {
 
     Texture oak_log = texture_fromFile("../minecraft/textures/block/oak_log.png", (vec4){1, 1, 1, 1});
     Texture oak_log_top = texture_fromFile("../minecraft/textures/block/oak_log_top.png", (vec4){1, 1, 1, 1});
+    gameManager.oakLogBlockModel = block_newBlockModel(
+        (BlockModelElement[1]){{
+            .from = {0, 0, 0},
+            .to = {16, 16, 16},
+            .cullFaces = {0, 1, 2, 3, 4, 5},
+            .faces = {
+                block_newBlockModelElementFaceData(oak_log, (float[8]){0, 0, 0, 1, 1, 1, 1, 0}),
+                block_newBlockModelElementFaceData(oak_log, (float[8]){0, 0, 0, 1, 1, 1, 1, 0}),
+                block_newBlockModelElementFaceData(oak_log_top, (float[8]){0, 0, 0, 1, 1, 1, 1, 0}),
+                block_newBlockModelElementFaceData(oak_log_top, (float[8]){0, 0, 0, 1, 1, 1, 1, 0}),
+                block_newBlockModelElementFaceData(oak_log, (float[8]){0, 0, 0, 1, 1, 1, 1, 0}),
+                block_newBlockModelElementFaceData(oak_log, (float[8]){0, 0, 0, 1, 1, 1, 1, 0}),
+            },
+            .faceCount = 6,
+        }},
+        1, true);
+
+    Texture short_grass = texture_fromFile("../minecraft/textures/block/short_grass.png", (vec4){99 / 255.f, 185 / 255.f, 39 / 255.f, 1});
+    gameManager.shortGrassBlockModel = block_newBlockModel(
+        (BlockModelElement[2]){
+            {
+                .from = {0.8, 0, 8},
+                .to = {15.2, 16, 8},
+                .cullFaces = {-1, -1, -1, -1, -1, -1},
+                .faces = {
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL,
+                    block_newBlockModelElementFaceData(short_grass, (float[8]){0, 0, 0, 1, 1, 1, 1, 0}),
+                    block_newBlockModelElementFaceData(short_grass, (float[8]){0, 0, 0, 1, 1, 1, 1, 0}),
+                },
+                .faceCount = 2,
+            },
+            {
+                .from = {8, 0, 0.8},
+                .to = {8, 16, 15.2},
+                .cullFaces = {-1, -1, -1, -1, -1, -1},
+                .faces = {
+                    block_newBlockModelElementFaceData(short_grass, (float[8]){0, 0, 0, 1, 1, 1, 1, 0}),
+                    block_newBlockModelElementFaceData(short_grass, (float[8]){0, 0, 0, 1, 1, 1, 1, 0}),
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL,
+                },
+                .faceCount = 2,
+            }},
+        2, false);
+}
+
+void renderChunks(bool renderShadow) {
+    mat4x4 model;
+    // Render chunks
+    map_entries(&chunks, entries) {
+        Chunk* chunk = (Chunk*)entries->value;
+        for (size_t i = 0; i < TOTAL_CHUNK_SUB_HEIGHT; i++) {
+            ChunkSub* chunkSub = chunk->chunkSub[i];
+            if (!chunkSub || chunkSub->state != CHUNK_SUB_MESH_CREATED) continue;
+
+            // Render ChunkSub
+            ChunkCoord* chunkCoord = (ChunkCoord*)entries->key;
+            mat4x4_translate_create(model, chunkCoord->x << CHUNK_SIZE_X_SHIFT, (chunkSub->subIndex + NEGTIVE_INDEX_HEIGHT) << CHUNK_SUB_Y_SIZE_SHIFT, chunkCoord->z << CHUNK_SIZE_Z_SHIFT);
+            if (renderShadow) glUniformMatrix4fv(depthShader.uModel, 1, GL_FALSE, (float*)model);
+            else glUniformMatrix4fv(objectShader.uModel, 1, GL_FALSE, (float*)model);
+
+            chunkSub_render(chunkSub, renderShadow);
+        }
+    }
 }
 
 void gameManagerOnRender() {
     if (state == 0) {
         state = 1;
         pthread_create(&worldLoadThread, NULL, generateWorld, "GenerateWorld");
+
+        cx = -viewDistance;
+        cz = -viewDistance;
     } else if (state == 2) {
         // Init chunk mesh
         for (size_t i = 0; i < 5; i++) {
-            if (cx < 20) {
-                if (cz < 20) {
+            if (cx < viewDistance) {
+                if (cz < viewDistance) {
                     ChunkCoord coordNext = {cx, cz};
                     Chunk* chunk = (Chunk*)map_get(&chunks, &coordNext);
-                    for (size_t i = 0; i < TOTAL_CHUNK_SUB_HEIGHT; i++) {
-                        ChunkSub* chunkSub = chunk->chunkSub[i];
-                        if (!chunkSub) continue;
-                        chunkSub_initMeshVertices(chunkSub);
-                        chunkSub_initMesh(chunkSub);
-                    }
+                    // Check if chunk is loaded
+                    if (chunk) {
+                        // Check each ChunkSub
+                        int loadCount = 0;
+                        for (size_t i = 0; i < TOTAL_CHUNK_SUB_HEIGHT; i++) {
+                            ChunkSub* chunkSub = chunk->chunkSub[i];
+                            if (!chunkSub || !chunkSub_isReadyInitMesh(chunkSub)) continue;
+                            chunkSub_initMeshVertices(chunkSub);
+                            chunkSub_initMesh(chunkSub);
+                            chunkSub->state = CHUNK_SUB_MESH_CREATED;
+                            loadCount++;
+                        }
 
-                    printf("Loading Chunk: %d, %d\n", cx, cz);
+                        // printf("Loading Chunk: %d, %d, %d\n", cx, cz, loadCount);
+                    }
                     cz++;
                 } else {
-                    cz = -20;
+                    cz = -viewDistance;
                     cx++;
                 }
             }
         }
+        renderChunks(false);
+    }
+}
 
-        mat4x4 model;
-        // Render chunks
-        map_entries(&chunks, entries) {
-            Chunk* chunk = (Chunk*)entries->value;
-            for (size_t i = 0; i < TOTAL_CHUNK_SUB_HEIGHT; i++) {
-                ChunkSub* chunkSub = chunk->chunkSub[i];
-                if (!chunkSub || !chunkSub->bottom) continue;
-
-                // Render ChunkSub
-                ChunkCoord* chunkCoord = (ChunkCoord*)entries->key;
-                mat4x4_translate_create(model, chunkCoord->x << CHUNK_SIZE_X_SHIFT, (chunkSub->subIndex + NEGTIVE_INDEX_HEIGHT) << CHUNK_SUB_Y_SIZE_SHIFT, chunkCoord->z << CHUNK_SIZE_Z_SHIFT);
-                glUniformMatrix4fv(objectShader.uModel, 1, GL_FALSE, (float*)model);
-
-                chunkSub_render(chunkSub);
-            }
-        }
+void gameManagerOnRenderShadow() {
+    if (state == 2) {
+        renderChunks(true);
     }
 }
 
@@ -187,13 +258,18 @@ float terrain(int x, int y, float size) {
 }
 
 void* generateWorld(void* data) {
-    for (int cx = -21; cx < 21; cx++) {
-        for (int cz = -21; cz < 21; cz++) {
-            ChunkCoord* coord = malloc(sizeof(ChunkCoord));
-            coord->x = cx;
-            coord->z = cz;
+    int hViewDistance = viewDistance + 1;
+    for (int cx = -hViewDistance; cx < hViewDistance; cx++) {
+        for (int cz = -hViewDistance; cz < hViewDistance; cz++) {
+            if (cx * cx + cz * cz > hViewDistance * hViewDistance) continue;
+
             Chunk* chunk = chunk_new(&chunks, cx, cz);
-            map_putpp(&chunks, coord, chunk);
+
+            // Set chunk sub block ready
+            for (int cy = -1; cy < 4; cy++) {
+                ChunkSub* chunkSub = chunk->chunkSub[cy - NEGTIVE_INDEX_HEIGHT] = chunkSub_newWithIndex(chunk, cy - NEGTIVE_INDEX_HEIGHT);
+                chunkSub->state = CHUNK_SUB_BLOCK_LOADED;
+            }
 
             // Create chunk blocks
             int xOff = cx * CHUNK_SIZE_X + 65535, zOff = cz * CHUNK_SIZE_Z + 65535;
@@ -205,15 +281,15 @@ void* generateWorld(void* data) {
                     h = h * 10 + 1;
 
                     // Create y blocks
-                    for (int y = -1; y < (int)h; y++) {
+                    for (int y = -1; y <= (int)h; y++) {
                         Block* block = (Block*)malloc(sizeof(Block));
                         block->xInChunk = x;
                         block->yInChunk = y & CHUNK_SUB_Y_SIZE_MASK;
                         block->zInChunk = z;
 
-                        if (y < 4)
+                        if (y == (int)h && y < 4)
                             block->model = gameManager.sandBlockModel;
-                        else if (y + 1 == (int)h)
+                        else if (y == (int)h)
                             block->model = gameManager.grassBlockModel;
                         else if (y + 5 > h)
                             block->model = gameManager.dirtBlockModel;
@@ -222,10 +298,23 @@ void* generateWorld(void* data) {
 
                         // Get ChunkSub
                         ChunkSub* chunkSub = chunk->chunkSub[chunk_getChunkSubIndexByBlockY(y)];
-                        if (!chunkSub)
-                            chunkSub = chunk->chunkSub[chunk_getChunkSubIndexByBlockY(y)] = chunkSub_new(chunk, y);
 
                         chunkSub_setBlock(chunkSub, block);
+                    }
+                    // Plant grass
+                    float grassProp = terrain(xOff + x, zOff + z, 1.1f);
+                    if (grassProp < 0.2) {
+                        int y = (int)h + 1;
+                        if (y > 4) {
+                            Block* block = (Block*)malloc(sizeof(Block));
+                            block->xInChunk = x;
+                            block->yInChunk = y & CHUNK_SUB_Y_SIZE_MASK;
+                            block->zInChunk = z;
+                            block->model = gameManager.shortGrassBlockModel;
+
+                            ChunkSub* chunkSub = chunk->chunkSub[chunk_getChunkSubIndexByBlockY(y)];
+                            chunkSub_setBlock(chunkSub, block);
+                        }
                     }
                 }
             }

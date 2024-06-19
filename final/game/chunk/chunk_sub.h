@@ -21,36 +21,43 @@ const MapNodeInfo info = {
     0,
 };
 
+typedef enum ChunkSubState {
+    CHUNK_SUB_EMPTY,
+    CHUNK_SUB_BLOCK_LOADED,
+    CHUNK_SUB_MESH_CREATED,
+} ChunkSubState;
+
 typedef struct ChunkSub {
     int subIndex;
     Block* chunkSubBlocks[CHUNK_SIZE_X * CHUNK_SIZE_Z * CHUNK_SUB_Y_SIZE];
     BlockMesh* chunkSubBlockMeshs[CHUNK_SIZE_X * CHUNK_SIZE_Z * CHUNK_SUB_Y_SIZE];
+    ChunkSubState state;
     // Map<GLuint TextureId, ChunkSubTextureMesh*>
     Map chunkSubTextureMeshMap;
 
     struct Chunk* parent;
-    struct ChunkSub* top;
-    struct ChunkSub* bottom;
 } ChunkSub;
+
+#define chunkSub_top(chunkSub) (chunkSub->subIndex + 1 == TOTAL_CHUNK_SUB_HEIGHT ? NULL : chunkSub->parent->chunkSub[chunkSub->subIndex + 1])
+#define chunkSub_bottom(chunkSub) (chunkSub->subIndex == 0 ? NULL : chunkSub->parent->chunkSub[chunkSub->subIndex - 1])
 
 ChunkSub* chunkSub_new(Chunk* parent, int blockY) {
     ChunkSub* chunkSub = calloc(1, sizeof(ChunkSub));
+    chunkSub->state = CHUNK_SUB_EMPTY;
     chunkSub->chunkSubTextureMeshMap.info = info;
 
     chunkSub->parent = parent;
     chunkSub->subIndex = chunk_getChunkSubIndexByBlockY(blockY);
+    return chunkSub;
+}
 
-    ChunkSub* top = parent->chunkSub[chunkSub->subIndex + 1];
-    if (top) {
-        chunkSub->top = top;
-        top->bottom = chunkSub;
-    }
-    ChunkSub* bottom = parent->chunkSub[chunkSub->subIndex - 1];
-    if (bottom) {
-        chunkSub->bottom = bottom;
-        bottom->top = chunkSub;
-    }
+ChunkSub* chunkSub_newWithIndex(Chunk* parent, int index) {
+    ChunkSub* chunkSub = calloc(1, sizeof(ChunkSub));
+    chunkSub->state = CHUNK_SUB_EMPTY;
+    chunkSub->chunkSubTextureMeshMap.info = info;
 
+    chunkSub->parent = parent;
+    chunkSub->subIndex = index;
     return chunkSub;
 }
 
@@ -97,6 +104,10 @@ ChunkSubTextureMesh* chunkSub_getTextureMesh(ChunkSub* chunkSub, Texture texture
 
 void chunkSub_setBlock(ChunkSub* chunkSub, Block* block) {
     chunkSub->chunkSubBlocks[getBlockIndex(block->xInChunk, block->yInChunk, block->zInChunk)] = block;
+}
+
+Block* chunkSub_getBlock(ChunkSub* chunkSub, uint8_t xInChunk, uint8_t yInChunk, uint8_t zInChunk) {
+    return chunkSub->chunkSubBlocks[getBlockIndex(xInChunk, yInChunk, zInChunk)];
 }
 
 void chunkSub_loadBlockMesh(ChunkSub* chunkSub, uint8_t* faces, Block* block) {
@@ -168,6 +179,22 @@ uint8_t deleteDuplicateFace(BlockModel* model, Block* right, Block* left, Block*
     return output;
 }
 
+static inline bool chunkSub_isReadyInitMesh(ChunkSub* chunkSub) {
+    ChunkSub* leftChunkSub = chunkSub->parent->left ? chunkSub->parent->left->chunkSub[chunkSub->subIndex] : NULL;
+    ChunkSub* rightChunkSub = chunkSub->parent->right ? chunkSub->parent->right->chunkSub[chunkSub->subIndex] : NULL;
+    ChunkSub* topChunkSub = chunkSub_top(chunkSub);
+    ChunkSub* bottomChunkSub = chunkSub_bottom(chunkSub);
+    ChunkSub* frontChunkSub = chunkSub->parent->front ? chunkSub->parent->front->chunkSub[chunkSub->subIndex] : NULL;
+    ChunkSub* backChunkSub = chunkSub->parent->back ? chunkSub->parent->back->chunkSub[chunkSub->subIndex] : NULL;
+    return chunkSub->state == CHUNK_SUB_BLOCK_LOADED &&
+           leftChunkSub && leftChunkSub->state &&
+           rightChunkSub && rightChunkSub->state &&
+           topChunkSub && topChunkSub->state &&
+           bottomChunkSub && bottomChunkSub->state &&
+           frontChunkSub && frontChunkSub->state &&
+           backChunkSub && backChunkSub->state;
+}
+
 void chunkSub_initMeshVertices(ChunkSub* chunkSub) {
     for (uint8_t x = 0; x < 16; x++) {
         for (uint8_t y = 0; y < 16; y++) {
@@ -180,8 +207,11 @@ void chunkSub_initMeshVertices(ChunkSub* chunkSub) {
                 ChunkSub* leftChunkSub = chunkSub->parent->left ? chunkSub->parent->left->chunkSub[chunkSub->subIndex] : NULL;
                 Block* left = x == 0 ? leftChunkSub ? leftChunkSub->chunkSubBlocks[getBlockIndex(CHUNK_SIZE_X - 1, y, z)] : NULL : chunkSub->chunkSubBlocks[getBlockIndex(x - 1, y, z)];
 
-                Block* top = y == 15 ? chunkSub->top ? chunkSub->top->chunkSubBlocks[getBlockIndex(x, 0, z)] : NULL : chunkSub->chunkSubBlocks[getBlockIndex(x, y + 1, z)];
-                Block* bottom = y == 0 ? chunkSub->bottom->chunkSubBlocks[getBlockIndex(x, CHUNK_SUB_Y_SIZE - 1, z)] : chunkSub->chunkSubBlocks[getBlockIndex(x, y - 1, z)];
+                ChunkSub* topChunkSub = chunkSub_top(chunkSub);
+                Block* top = y == 15 ? topChunkSub ? topChunkSub->chunkSubBlocks[getBlockIndex(x, 0, z)] : NULL : chunkSub->chunkSubBlocks[getBlockIndex(x, y + 1, z)];
+
+                ChunkSub* bottomChunkSub = chunkSub_bottom(chunkSub);
+                Block* bottom = y == 0 ? bottomChunkSub ? bottomChunkSub->chunkSubBlocks[getBlockIndex(x, CHUNK_SUB_Y_SIZE - 1, z)] : NULL : chunkSub->chunkSubBlocks[getBlockIndex(x, y - 1, z)];
 
                 ChunkSub* frontChunkSub = chunkSub->parent->front ? chunkSub->parent->front->chunkSub[chunkSub->subIndex] : NULL;
                 Block* front = z == 15 ? frontChunkSub ? frontChunkSub->chunkSubBlocks[getBlockIndex(x, y, 0)] : NULL : chunkSub->chunkSubBlocks[getBlockIndex(x, y, z + 1)];
@@ -210,16 +240,19 @@ void chunkSub_initMesh(ChunkSub* chunkSub) {
     }
 }
 
-void chunkSub_render(ChunkSub* chunkSub) {
+void chunkSub_render(ChunkSub* chunkSub, bool renderShadow) {
     map_entries(&chunkSub->chunkSubTextureMeshMap, entries) {
         ChunkSubTextureMesh* chunkSubTextureMesh = (ChunkSubTextureMesh*)entries->value;
         Mesh* mesh = chunkSubTextureMesh->mesh;
-        // Set texture
-        glUniform4fv(objectShader.material_color, 1, (const GLfloat*)&chunkSubTextureMesh->texture.color);
-        glBindTexture(GL_TEXTURE_2D, chunkSubTextureMesh->texture.textureId);
-        glUniform1i(objectShader.material_diffuse, 0);
-        glUniform1i(objectShader.material_singleChannel, chunkSubTextureMesh->texture.singleChannel);
-
+        // Apply texture if normal render
+        if (!renderShadow) {
+            // Set texture
+            glUniform4fv(objectShader.material_color, 1, (const GLfloat*)&chunkSubTextureMesh->texture.color);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, chunkSubTextureMesh->texture.textureId);
+            glUniform1i(objectShader.material_diffuse, 0);
+            glUniform1i(objectShader.material_singleChannel, chunkSubTextureMesh->texture.singleChannel);
+        }
         // Render mesh
         glBindVertexArray(mesh->vao);
         glDrawElements(GL_TRIANGLES, mesh->indicesCount, GL_UNSIGNED_INT, NULL);
