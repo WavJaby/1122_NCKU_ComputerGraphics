@@ -17,6 +17,7 @@
 #include "gl_vector.h"
 #include "stl_reader.h"
 #include "math3d.h"
+#include "sphere.h"
 #ifdef _WIN32
 
 #endif
@@ -32,7 +33,7 @@ float windowAspect;
 char fpsInfo[40], windowInfo[32];
 bool debugText = true, welcome = true;
 GLuint xzGridList, depthMap, depthMapFBO;
-GLfloat factor = 1.0f;  // for polygon offset
+GLfloat factor = 2.0f;  // for polygon offset
 
 GameObject* gameObjects[10];
 GLfloat lightPosition[] = {100.0, 200.0, -100.0};
@@ -88,12 +89,55 @@ void drawRect(float x, float y, float w, float h) {
     glEnd();
 }
 
-void renderGameObjects(bool updateGlobalValue) {
-    glColor3f(1, 1, 1);
+GLuint gridTextureId;
+GLuint sphereVboIds[4];
+int sphereIndicesCount;
+
+void loadGridTexture() {
+    const int width = 8, height = 8;
+    GLuint checkeredTexture[width * height];
+    for (size_t i = 0; i < height; i++) {
+        for (size_t j = 0; j < width; j++) {
+            uint32_t color = ((float)(i * width + j) / (width * height)) * 255;
+            checkeredTexture[i * width + j] = (j % 2 == i % 2) ? 0xFFFF0000 | color : 0xFF000000;
+        }
+    }
+
+    glGenTextures(1, &gridTextureId);
+    glBindTexture(GL_TEXTURE_2D, gridTextureId);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, checkeredTexture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+}
+
+void renderGameObjects(bool updateGlobalValue, bool applyTexture) {
+    glColor4f(1, 1, 1, 1);
     for (size_t i = 0; i < 10; i++) {
         if (!gameObjects[i]) break;
         renderGameObject(gameObjects[i], updateGlobalValue ? (Matrix44f)identity : NULL);
     }
+
+    glPushMatrix();
+    glTranslatef(gameObjects[2]->position[0], gameObjects[2]->position[1], gameObjects[2]->position[2]);
+    sphere_render(sphereVboIds, sphereIndicesCount);
+    if (applyTexture) {
+        // TODO: fix shadow
+        // glActiveTexture(GL_TEXTURE1);
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, gridTextureId);
+        glDisable(GL_TEXTURE_GEN_S);
+        glDisable(GL_TEXTURE_GEN_T);
+        glDisable(GL_TEXTURE_GEN_R);
+        glDisable(GL_TEXTURE_GEN_Q);
+
+        sphere_render(sphereVboIds, sphereIndicesCount);
+
+        // glActiveTexture(GL_TEXTURE0);
+    }
+    glPopMatrix();
 }
 
 void updateShadowMap() {
@@ -124,11 +168,13 @@ void updateShadowMap() {
 
     glViewport(0, 0, shadowWidth, shadowHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
     glClear(GL_DEPTH_BUFFER_BIT);  // Clear the depth buffer
 
     // Overcome imprecision
     glEnable(GL_POLYGON_OFFSET_FILL);
-    renderGameObjects(false);
+    renderGameObjects(false, false);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // Restore normal drawing state
@@ -236,30 +282,11 @@ void initGL() {
     gameObjects[1] = block;
 
     // sphere
-    glNewList(listCache, GL_COMPILE);
-    glColor3f(1.0f, 1.0f, 1.0f);
-    glutSolidSphere(0.25f, 20, 20);
-    glEndList();
-    gameObjects[2] = newGameObjectDefault(listCache++);
+    gameObjects[2] = newGameObjectDefault(0);
     vec3fSet(gameObjects[2]->position, (Vector3f){-1.5f, 0.25f, 0});
+    sphereIndicesCount = sphere_setupVBO(sphereVboIds, 0.25f, 20, 20);
 
-    // cube
-    // glNewList(listCache, GL_COMPILE);
-    // glColor3f(1.0f, 1.0f, 0.0f);
-    // glutSolidCube(0.5f);
-    // glEndList();
-    // gameObjects[2] = newGameObjectDefault(listCache++);
-    // vec3fSet(gameObjects[2]->position, (Vector3f){1.5f, 0.25f, 0});
-    // gameObjects[2]->collider = (Collider){COLIDER_BOX, {0, 0, 0}, {1, 1, 1}};
-    // GLfloat lightModelview[16];
-    // glGetFloatv(GL_MODELVIEW_MATRIX, lightModelview);
-
-    // // Draw magenta torus
-    // glColor3f(1.0f, 0.0f, 1.0f);
-    // glPushMatrix();
-    // glTranslatef(2.0f, 1.0f, -1.0f);
-    // glutSolidTorus(0.5f, 1.0f, 30, 50);
-    // glPopMatrix();
+    loadGridTexture();
 
     // XZ grid plane
     xzGridList = debugGridCreate(10);
@@ -271,23 +298,29 @@ void initGL() {
     vec3fSet(cameraAngle, (Vector3f){-10, 90, 0});
 
     // Shadow
+    glEnable(GL_TEXTURE_2D);
     glGenFramebuffers(1, &depthMapFBO);
     glGenTextures(1, &depthMap);
     glBindTexture(GL_TEXTURE_2D, depthMap);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowWidth, shadowHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glActiveTexture(GL_TEXTURE0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
-    // if (ambientShadowAvailable)
-    // glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FAIL_VALUE_ARB, 0.5f);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
     glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
     glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
     glTexGeni(GL_R, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
     glTexGeni(GL_Q, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
+    // Texture
+    glActiveTexture(GL_TEXTURE1);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
@@ -314,25 +347,24 @@ void display() {
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  // Clear color and depth buffers
 
-    // if (!ambientShadowAvailable) {
+    // Set up light under shadow
     GLfloat lowAmbient[4] = {0.1f, 0.1f, 0.1f, 1.0f};
     GLfloat lowDiffuse[4] = {0.35f, 0.35f, 0.35f, 1.0f};
     glLightfv(GL_LIGHT0, GL_AMBIENT, lowAmbient);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, lowDiffuse);
-    renderGameObjects(false);
+    renderGameObjects(false, false);
+
+    // Set up normal render light
+    glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
     // Enable alpha test so that shadowed fragments are discarded
     glAlphaFunc(GL_GREATER, 0.9f);
     glEnable(GL_ALPHA_TEST);
-    // }
-
-    glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
     // Set up shadow comparison
     glEnable(GL_TEXTURE_2D);
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, depthMap);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
-
     // Set up the eye plane for projecting the shadow map on the scene
     glEnable(GL_TEXTURE_GEN_S);
     glEnable(GL_TEXTURE_GEN_T);
@@ -343,13 +375,14 @@ void display() {
     glTexGenfv(GL_R, GL_EYE_PLANE, &textureMatrix[8]);
     glTexGenfv(GL_Q, GL_EYE_PLANE, &textureMatrix[12]);
     // Render GameObjects
-    renderGameObjects(true);
+    renderGameObjects(true, true);
     glDisable(GL_ALPHA_TEST);
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_TEXTURE_GEN_S);
     glDisable(GL_TEXTURE_GEN_T);
     glDisable(GL_TEXTURE_GEN_R);
     glDisable(GL_TEXTURE_GEN_Q);
+
     glPopMatrix();
     glDisable(GL_LIGHTING);
 
@@ -527,7 +560,7 @@ void frameTimer(int value) {
     if (keys[GLUT_KEY_ESC]) {
         glutStoped = true;
         glutDestroyWindow(glutGetWindow());
-        memTrackResult();
+        // memTrackResult();
         return;
     }
     glutPostRedisplay();  // Post re-paint request to activate display()

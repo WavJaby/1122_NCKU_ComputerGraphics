@@ -1,5 +1,5 @@
 
-# 1122 NCKU COMPUTER GRAPHICS HW3
+# 1122 NCKU COMPUTER GRAPHICS HW3, HW4
 
 For more information, see <https://github.com/WavJaby/1122_NCKU_ComputerGraphics/tree/main/hw3>
 
